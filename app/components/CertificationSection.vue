@@ -1,7 +1,13 @@
 <script setup lang="ts">
+import type { CertificationsCollectionItem } from '@nuxt/content'
+
 defineProps<{
-  certificate: Certification
+  certificate: CertificationsCollectionItem
 }>()
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })
+}
 </script>
 
 <template>
@@ -17,7 +23,7 @@ defineProps<{
       <UChip standalone inset size="2xs" />
       <span class="group inline-flex text-highlighted items-center gap-2">
         <UIcon name="i-hugeicons-calendar-04" class="size-5" />
-        {{ certificate.issueDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' }) }}
+        {{ formatDate(certificate.issueDate) }}
       </span>
     </p>
     <UButton v-if="certificate.url" variant="subtle" color="neutral" class="text-primary print:bg-transparent"

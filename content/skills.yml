@@ -1,0 +1,43 @@
+categories:
+  - name: Languages
+    items:
+      - "\U0001F1EE\U0001F1F9 Italian (Native)"
+      - "\U0001F1EC\U0001F1E7 English (B2)"
+      - "\U0001F1EA\U0001F1F8 Spanish (A2)"
+  - name: Programming Languages
+    items:
+      - JavaScript
+      - TypeScript
+      - Python
+      - HTML5
+      - CSS3
+  - name: Frontend Technologies
+    items:
+      - Vue 3
+      - Nuxt 3/4
+      - Tailwind CSS 3/4
+      - Capacitor
+      - Flutter
+  - name: Backend Technologies
+    items:
+      - Node.js
+      - Bun
+      - Elysia
+      - PostgreSQL
+      - MySQL
+      - BetterAuth
+  - name: Security & DevOps
+    items:
+      - Docker
+      - Kubernetes
+      - Cloudflare
+      - GitHub Actions
+      - Digital Ocean
+  - name: Tools
+    items:
+      - Git
+      - Vitest
+      - Playwright
+      - Vite
+      - ESLint
+      - Playwright

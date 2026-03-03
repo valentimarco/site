@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     '@formkit/auto-animate/nuxt',
     '@vueuse/nuxt',
     '@nuxtjs/seo',
+    '@nuxt/content',
     '@nuxt/ui',
     '@nuxt/image',
     '@compodium/nuxt',

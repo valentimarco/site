@@ -1,13 +1,16 @@
 <script setup lang="ts">
+import type { ExperiencesCollectionItem } from '@nuxt/content'
+
 defineProps<{
-  experience: ProfessionalExperience
+  experience: ExperiencesCollectionItem
 }>()
 
-function getTimeSpan(startDate: Date, endDate?: Date) {
-  const end = endDate || new Date()
-  const months = (end.getFullYear() - startDate.getFullYear()) * 12 + (end.getMonth() - startDate.getMonth())
+function getTimeSpan(startDate: string, endDate?: string) {
+  const start = new Date(startDate)
+  const end = endDate ? new Date(endDate) : new Date()
+  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth())
   if (months < 1) {
-    const diffTime = Math.abs(end.getTime() - startDate.getTime())
+    const diffTime = Math.abs(end.getTime() - start.getTime())
     const days = Math.floor(diffTime / (1000 * 60 * 60 * 24))
     return `${days} day${days !== 1 ? 's' : ''}`
   }
@@ -17,6 +20,10 @@ function getTimeSpan(startDate: Date, endDate?: Date) {
   return remMonths === 0
     ? `${years} year${years !== 1 ? 's' : ''}`
     : `${years} year${years !== 1 ? 's' : ''} ${remMonths} month${remMonths !== 1 ? 's' : ''}`
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })
 }
 </script>
 
@@ -41,14 +48,15 @@ function getTimeSpan(startDate: Date, endDate?: Date) {
         </p>
       </div>
       <p class="text-sm text-muted whitespace-nowrap">
-        <span class="capitalize">{{ experience.startDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' }) }}</span>
+        <span class="capitalize">{{ formatDate(experience.startDate) }}</span>
         -
-        <span class="capitalize">{{ experience.endDate?.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' }) || 'Present' }}</span>
+        <span class="capitalize">{{ experience.endDate ? formatDate(experience.endDate) : 'Present' }}</span>
         ({{ getTimeSpan(experience.startDate, experience.endDate) }})
       </p>
     </div>
-    <article class="leading-relaxed prose prose-neutral prose-p:m-0 prose-ul:m-0 dark:prose-invert max-w-none text-sm"
-             v-html="parseMarkdown(experience.description)" />
+    <article class="leading-relaxed prose prose-neutral prose-p:m-0 prose-ul:m-0 dark:prose-invert max-w-none text-sm">
+      <ContentRenderer :value="experience" />
+    </article>
     <div class="flex flex-wrap gap-2">
       <UBadge v-for="(tech, i) in experience.technologies" :key="i" :label="tech" variant="soft" />
     </div>
