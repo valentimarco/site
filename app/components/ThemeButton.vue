@@ -3,6 +3,9 @@ const colorMode = useColorMode()
 
 const nextTheme = computed(() => colorMode.value === 'dark' ? 'light' : 'dark')
 
+const isLight = computed(() => colorMode.value === 'light')
+const tooltipText = computed(() => isLight.value ? 'light attracts bugs, switch the light here' : 'Toggle Theme')
+
 function switchTheme() {
   colorMode.preference = nextTheme.value
 }
@@ -37,9 +40,39 @@ function startViewTransition(event: MouseEvent) {
 </script>
 
 <template>
-  <UTooltip arrow text="Toggle Theme" class="no-print">
-    <UButton class="fixed bottom-4 md:top-4 md:bottom-auto left-4 rounded-full z-50"
-             size="lg" color="neutral" square aria-label="Toggle Theme" variant="subtle"
-             :icon="nextTheme === 'dark' ? 'i-hugeicons-sun-03' : 'i-hugeicons-moon-02'" @click="startViewTransition" />
-  </UTooltip>
+<UTooltip arrow :text="tooltipText" class="no-print">
+  <UButton class="fixed bottom-4 md:top-4 md:bottom-auto left-4 rounded-full z-50" :class="{ 'blink-button': isLight }"
+    size="lg" color="neutral" square aria-label="Toggle Theme" variant="subtle"
+    :icon="nextTheme === 'dark' ? 'i-hugeicons-sun-03' : 'i-hugeicons-moon-02'" @click="startViewTransition" />
+</UTooltip>
 </template>
+
+<style scoped>
+.blink-button {
+  animation: blink 1s linear infinite;
+}
+
+@keyframes blink {
+  0% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(234, 179, 8, 0.35);
+  }
+
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+/* Avoid blinking in print */
+@media print {
+  .blink-button {
+    animation: none !important;
+  }
+}
+</style>

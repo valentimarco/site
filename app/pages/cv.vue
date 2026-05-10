@@ -68,7 +68,7 @@ const isContentReady = computed(() => {
     && contributions.value
 })
 
-// Notify parent window when content is ready
+// Notify parent window when content is ready (browser-only)
 if (typeof window !== 'undefined') {
   watch(isContentReady, (ready) => {
     if (ready && window.parent !== window)
@@ -78,136 +78,110 @@ if (typeof window !== 'undefined') {
 </script>
 
 <template>
-<BlurReveal class="min-h-screen not-print:pt-12 print:max-w-none">
-  <div class="p-4 space-y-4 print:p-0 max-w-3xl mx-auto">
-    <!-- Header -->
-    <header class="text-center space-y-1">
-      <h1 class="text-2xl font-bold text-highlighted">
-        {{ name }}
-      </h1>
-      <div class="text-sm text-muted">
-        {{ email }} ❖ {{ location }}
+<BlurReveal
+  class="min-h-screen max-w-4xl mx-auto not-print:pt-12 print:max-w-none selection:bg-primary selection:text-neutral-900">
+  <div class="p-4 space-y-4 print:p-0">
+    <UCard variant="subtle" class="print:bg-transparent">
+      <div class="space-y-4">
+        <!-- Header -->
+        <header class="text-center space-y-1">
+          <h1 class="text-2xl font-bold text-highlighted">{{ name }}</h1>
+          <div class="text-sm text-muted">{{ email }} ❖ {{ location }}</div>
+        </header>
+
+        <!-- Work Experience -->
+        <template v-if="cvConfig.data.value?.body.includes('experience')">
+          <section>
+            <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
+              Work Experience</h2>
+            <div class="space-y-3">
+              <div v-for="exp in experiencesContent" :key="exp.stem" class="print:break-inside-auto">
+                <div class="flex justify-between items-baseline">
+                  <h3 class="font-semibold text-highlighted text-sm">{{ exp.company }}</h3>
+                  <div class="text-xs text-muted whitespace-nowrap">{{ getDateRange(exp.startDate, exp.endDate) }}</div>
+                </div>
+                <div class="flex justify-between items-baseline text-sm">
+                  <span class="text-toned italic">{{ exp.position }}</span>
+                  <span class="text-muted text-xs">{{ exp.location }}</span>
+                </div>
+                <article class="mt-1 text-sm text-toned leading-snug">
+                  <ContentRenderer :value="exp" />
+                </article>
+              </div>
+            </div>
+          </section>
+        </template>
+
+        <!-- Open Source Contributions -->
+        <template v-if="cvConfig.data.value?.body.includes('contributions') && contributions.list?.length">
+          <section>
+            <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
+              Open Source Contributions</h2>
+            <ul class="space-y-1 text-sm text-toned">
+              <li v-for="(contrib, index) in contributions.list" :key="index" class="flex gap-2">
+                <span>•</span>
+                <span>{{ contrib.repoFullName }} ★ {{ contrib.stars }} stars, {{ contrib.prCount }} PRs</span>
+              </li>
+            </ul>
+          </section>
+        </template>
+
+        <!-- Education -->
+        <template v-if="cvConfig.data.value?.body.includes('education')">
+          <section>
+            <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
+              Education</h2>
+            <div class="space-y-3">
+              <div v-for="edu in educationContent" :key="edu.stem" class="print:break-inside-auto">
+                <div class="flex justify-between items-baseline">
+                  <h3 class="font-semibold text-highlighted text-sm">{{ edu.institution }}</h3>
+                  <div class="text-xs text-muted whitespace-nowrap">{{ getDateRange(edu.startDate, edu.endDate) }}</div>
+                </div>
+                <div class="text-sm text-toned italic">{{ edu.degree }}</div>
+              </div>
+            </div>
+          </section>
+        </template>
+
+        <!-- Skills -->
+        <template v-if="cvConfig.data.value?.body.includes('skills') && skillsContent?.categories">
+          <section>
+            <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
+              Skills</h2>
+            <p class="text-sm text-toned leading-snug">{{ allSkills }}</p>
+          </section>
+        </template>
+
+        <!-- Certifications -->
+        <template v-if="cvConfig.data.value?.body.includes('certifications') && certificationsContent?.length">
+          <section>
+            <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
+              Certifications</h2>
+            <ul class="space-y-1 text-sm text-toned">
+              <li v-for="cert in certificationsContent" :key="cert.stem" class="flex gap-2">
+                <span>•</span>
+                <span>{{ cert.title }} – {{ cert.issuer }} – {{ formatDate(cert.issueDate) }}</span>
+              </li>
+            </ul>
+          </section>
+        </template>
+
+        <footer class="pt-4 border-t border-default text-xs text-muted print:mt-8">
+          <p>I authorise the processing of the personal data in this CV in accordance with Regulation (EU) 2016/679 of
+            the
+            European Parliament and of the Council (GDPR).</p>
+          <p class="mt-1">© {{ new Date().getFullYear() }} {{ name }}</p>
+        </footer>
       </div>
-    </header>
-
-    <!-- Work Experience -->
-    <template v-if="cvConfig.data.value?.body.includes('experience')">
-      <section>
-        <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
-          Work Experience
-        </h2>
-        <div class="space-y-3">
-          <div v-for="exp in experiencesContent" :key="exp.stem" class="print:break-inside-auto">
-            <!-- Line 1: Company + Date -->
-            <div class="flex justify-between items-baseline">
-              <h3 class="font-semibold text-highlighted text-sm">
-                {{ exp.company }}
-              </h3>
-              <div class="text-xs text-muted whitespace-nowrap">
-                {{ getDateRange(exp.startDate, exp.endDate) }}
-              </div>
-            </div>
-            <!-- Line 2: Position + Location -->
-            <div class="flex justify-between items-baseline text-sm">
-              <span class="text-toned italic">{{ exp.position }}</span>
-              <span class="text-muted text-xs">{{ exp.location }}</span>
-            </div>
-            <!-- Bullet points -->
-            <article class="mt-1 text-sm text-toned leading-snug">
-              <ContentRenderer :value="exp" />
-            </article>
-          </div>
-        </div>
-      </section>
-    </template>
-
-    <!-- Open Source Contributions -->
-    <template v-if="cvConfig.data.value?.body.includes('contributions') && contributions.list?.length">
-      <section>
-        <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
-          Open Source Contributions
-        </h2>
-        <ul class="space-y-1 text-sm text-toned">
-          <li v-for="(contrib, index) in contributions.list" :key="index" class="flex gap-2">
-            <span>•</span>
-            <span>
-              {{ contrib.repoFullName }} ★ {{ contrib.stars }} stars, {{ contrib.prCount }} PRs
-            </span>
-          </li>
-        </ul>
-      </section>
-    </template>
-
-    <!-- Education -->
-    <template v-if="cvConfig.data.value?.body.includes('education')">
-      <section>
-        <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
-          Education
-        </h2>
-        <div class="space-y-3">
-          <div v-for="edu in educationContent" :key="edu.stem" class="print:break-inside-auto">
-            <!-- Line 1: Institution + Date -->
-            <div class="flex justify-between items-baseline">
-              <h3 class="font-semibold text-highlighted text-sm">
-                {{ edu.institution }}
-              </h3>
-              <div class="text-xs text-muted whitespace-nowrap">
-                {{ getDateRange(edu.startDate, edu.endDate) }}
-              </div>
-            </div>
-            <!-- Line 2: Degree -->
-            <div class="text-sm text-toned italic">
-              {{ edu.degree }}
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
-
-    <!-- Skills -->
-    <template v-if="cvConfig.data.value?.body.includes('skills') && skillsContent?.categories">
-      <section>
-        <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
-          Skills
-        </h2>
-        <p class="text-sm text-toned leading-snug">
-          {{ allSkills }}
-        </p>
-      </section>
-    </template>
-
-    <!-- Certifications -->
-    <template v-if="cvConfig.data.value?.body.includes('certifications') && certificationsContent?.length">
-      <section>
-        <h2 class="text-base font-bold text-highlighted border-b border-default pb-1 mb-2 uppercase tracking-wide">
-          Certifications
-        </h2>
-        <ul class="space-y-1 text-sm text-toned">
-          <li v-for="cert in certificationsContent" :key="cert.stem" class="flex gap-2">
-            <span>•</span>
-            <span>
-              {{ cert.title }} – {{ cert.issuer }} – {{ formatDate(cert.issueDate) }}
-            </span>
-          </li>
-        </ul>
-      </section>
-    </template>
-
-    <footer class="pt-4 border-t border-default text-xs text-muted print:mt-8">
-      <p>
-        I authorise the processing of the personal data in this CV in accordance with Regulation (EU) 2016/679 of the
-        European Parliament and of the Council (GDPR).
-      </p>
-      <p class="mt-1">
-        © {{ new Date().getFullYear() }} {{ name }}
-      </p>
-    </footer>
+    </UCard>
   </div>
 </BlurReveal>
 
 <div class="fixed bottom-8 left-1/2 -translate-x-1/2 no-print animate-bounce print:hidden">
   <UButton size="lg" icon="i-hugeicons-printer" label="Download PDF" color="primary" @click="handlePrint" />
 </div>
+
+<ThemeButton />
 </template>
 
 <style scoped>
