@@ -1,43 +1,69 @@
 categories:
   - name: Languages
     items:
-      - "\U0001F1EE\U0001F1F9 Italian (Native)"
-      - "\U0001F1EC\U0001F1E7 English (B2)"
-      - "\U0001F1EA\U0001F1F8 Spanish (A2)"
+      - 🇮🇹 Italian (Native)
+      - 🇬🇧 English (B2)
   - name: Programming Languages
     items:
-      - JavaScript
-      - TypeScript
+      - Rust
+      - Golang
+      - Java 17+
+      - C#
       - Python
+      - TypeScript
       - HTML5
       - CSS3
   - name: Frontend Technologies
     items:
       - Vue 3
-      - Nuxt 3/4
-      - Tailwind CSS 3/4
-      - Capacitor
-      - Flutter
+      - Nuxt 4
+      - Tailwind CSS 4
   - name: Backend Technologies
     items:
-      - Node.js
-      - Bun
-      - Elysia
       - PostgreSQL
       - MySQL
-      - BetterAuth
+      - Redis
+      - MongoDB
+      - Axum
+      - Echo
+      - Spring Boot
+      - CUDA
+      - OpenGL
+      - GraphQL
+      - gRPC
+      - REST
+      - Flex/Bison
+      - SPARQL
+      - RDF Graphs
+      - KeyCloak
+      - Authelia
+      - OpenVR
+  - name: AI Technologies
+    items:
+      - Langchain
+      - scikit-learn
+      - Qdrant
+      - Llama.cpp
+      - vllm
   - name: Security & DevOps
     items:
       - Docker
       - Kubernetes
-      - Cloudflare
+      - Cloudflare DNS
+      - Cloudflare ZeroTrust
       - GitHub Actions
-      - Digital Ocean
+  - name: Cloud
+    items:
+      - Digital Ocean Depots
+      - AWS Ec2
   - name: Tools
     items:
       - Git
       - Vitest
+      - GoTests
+      - RustTests
       - Playwright
       - Vite
       - ESLint
-      - Playwright
+      - Nvim
+      - Zed

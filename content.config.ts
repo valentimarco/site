@@ -42,6 +42,10 @@ export default defineContentConfig({
         startDate: z.string(),
         endDate: z.string().optional(),
         technologies: z.array(z.string()),
+        isMaintainer: z.boolean().optional(),
+        titleMaintainer: z.string().optional(),
+        isContributor: z.boolean().optional(),
+        titleContributor: z.string().optional(),
       }),
     }),
     education: defineCollection({
@@ -63,6 +67,27 @@ export default defineContentConfig({
         issuer: z.string(),
         issueDate: z.string(),
         url: z.string().optional(),
+      }),
+    }),
+    projects: defineCollection({
+      type: 'data',
+      source: 'projects.yml',
+      schema: z.object({
+        repos: z.array(z.string()).max(12),
+      }),
+    }),
+    cv: defineCollection({
+      type: 'data',
+      source: 'cv.yml',
+      schema: z.object({
+        body: z.array(z.enum([
+          'summary',
+          'experience',
+          'skills',
+          'education',
+          'certifications',
+          'contributions',
+        ])),
       }),
     }),
   },

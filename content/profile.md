@@ -1,25 +1,19 @@
 ---
 name: Marco Valenti
-username: valentimarco 
+username: valentimarco
 description: negri
 jobTitle: nerissimo
 birthDate: '2001-05-21'
 ogImage: /og-image.png
-email: alwe.dev@gmail.com
-location: Cremona, Italy
+email: mcvalenti2001@gmail.com
+location: Palermo, Italy
 socials:
   - label: LinkedIn
     icon: i-hugeicons-linkedin-02
-    url: https://linkedin.com/in/daniele-nicosia
+    url: https://linkedin.com/in/valentimarco21
   - label: GitHub
     icon: i-hugeicons-github
-    url: https://github.com/zAlweNy26
-  - label: Instagram
-    icon: i-hugeicons-instagram
-    url: https://www.instagram.com/dany_alwe
-  - label: PayPal
-    icon: i-hugeicons-paypal
-    url: https://paypal.me/danyalwe
+    url: https://github.com/valentimarco
 ---
 
 I'm **{{ $doc.age }}** years old born in

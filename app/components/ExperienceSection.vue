@@ -58,6 +58,8 @@ function formatDate(dateStr: string) {
       <ContentRenderer :value="experience" />
     </article>
     <div class="flex flex-wrap gap-2">
+      <UBadge v-if="experience.isMaintainer" :label="experience.titleMaintainer" variant="subtle" color="primary" />
+      <UBadge v-else-if="experience.isContributor" :label="experience.titleContributor" variant="subtle" color="success" />
       <UBadge v-for="(tech, i) in experience.technologies" :key="i" :label="tech" variant="soft" />
     </div>
   </div>

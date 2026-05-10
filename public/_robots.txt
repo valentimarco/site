@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /cv
+
+Sitemap: https://valentimarco.it/sitemap.xml

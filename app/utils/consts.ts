@@ -1,6 +1,6 @@
 import type { RestEndpointMethodTypes } from '@octokit/rest'
 
-export type GitHubRepository = RestEndpointMethodTypes['repos']['listForUser']['response']['data'][number]
+export type GitHubRepository = RestEndpointMethodTypes['repos']['get']['response']['data']
 
 export interface ContributionSummary {
   repoFullName: string

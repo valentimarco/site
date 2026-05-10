@@ -15,11 +15,16 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@compodium/nuxt',
     '@nuxt/eslint',
-    'nuxt-mcp',
     '@nuxt/hints',
   ],
 
   vite: {
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+      ],
+    },
     build: {
       rollupOptions: {
         external: ['sharp'],
@@ -27,7 +32,7 @@ export default defineNuxtConfig({
     },
   },
 
-  ssr: false,
+  ssr: true,
 
   css: ['~/assets/css/main.css'],
 
@@ -39,6 +44,7 @@ export default defineNuxtConfig({
     typedPages: true,
     payloadExtraction: true,
     emitRouteChunkError: 'automatic-immediate',
+    asyncContext: true,
   },
 
   runtimeConfig: {
@@ -67,5 +73,13 @@ export default defineNuxtConfig({
 
   colorMode: {
     disableTransition: false,
+  },
+
+  routeRules: {
+    '/cv': {
+      headers: {
+        'X-Frame-Options': 'SAMEORIGIN',
+      },
+    },
   },
 })
