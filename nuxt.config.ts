@@ -80,6 +80,16 @@ export default defineNuxtConfig({
         'X-Frame-Options': 'SAMEORIGIN',
       },
     },
+    '/blog': {
+      cache: {
+        maxAge: 300, // 5 min at edge
+      },
+    },
+    '/blog/**': {
+      cache: {
+        maxAge: 3600, // 1 hour for individual posts
+      },
+    },
     '/api/github': {
       cache: {
         maxAge: 3600 // Cache at edge for 1 hour

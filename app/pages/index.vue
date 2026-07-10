@@ -9,61 +9,16 @@ const {
 const { profile, repos, contributions } = await useGitHub({ username, name, email, location, projectSlugs })
 
 const showAllProjects = ref(false)
-const isPrinting = ref(false)
-let currentIframe: HTMLIFrameElement | null = null
 
 const visibleProjects = computed(() => {
   if (showAllProjects.value) return repos.value.list
   return repos.value.list.slice(0, 6)
 })
 
-function printCV() {
-  isPrinting.value = true
-
-  // Create iframe
-  currentIframe = document.createElement('iframe')
-  currentIframe.style.position = 'fixed'
-  currentIframe.style.top = '-9999px'
-  currentIframe.style.left = '-9999px'
-  currentIframe.style.width = '0'
-  currentIframe.style.height = '0'
-  currentIframe.src = '/cv'
-  document.body.appendChild(currentIframe)
-
-  // Listen for message from iframe when CV is ready
-  const handleMessage = (event: MessageEvent) => {
-    if (event.data?.type === 'cv-ready' && currentIframe) {
-      currentIframe.contentWindow?.print()
-      isPrinting.value = false
-
-      // Cleanup
-      window.removeEventListener('message', handleMessage)
-      setTimeout(() => {
-        if (currentIframe) {
-          document.body.removeChild(currentIframe)
-          currentIframe = null
-        }
-      }, 1000)
-    }
-  }
-
-  window.addEventListener('message', handleMessage)
-
-  // Fallback timeout in case message never comes
-  setTimeout(() => {
-    if (isPrinting.value && currentIframe) {
-      currentIframe.contentWindow?.print()
-      isPrinting.value = false
-      window.removeEventListener('message', handleMessage)
-      setTimeout(() => {
-        if (currentIframe) {
-          document.body.removeChild(currentIframe)
-          currentIframe = null
-        }
-      }, 1000)
-    }
-  }, 5000)
-}
+useHead({
+  title: name,
+  titleTemplate: t => t ? `${t} · Portfolio` : `${name} · Portfolio`,
+})
 </script>
 
 <template>
@@ -219,20 +174,4 @@ function printCV() {
       </p>
     </div>
   </BlurReveal>
-  <UButton class="fixed bottom-4 left-4 no-print z-50" size="lg" icon="i-hugeicons-printer" label="Print CV"
-           @click="printCV" />
-  <ThemeButton />
-  <UModal v-model:open="isPrinting" prevent-close>
-    <template #content>
-      <div class="p-6 text-center">
-        <UIcon name="i-hugeicons-printer" class="size-8 mx-auto mb-2 animate-pulse" />
-        <p class="text-lg font-medium">
-          Preparing your CV...
-        </p>
-        <p class="text-sm text-muted">
-          The print dialog will open shortly
-        </p>
-      </div>
-    </template>
-  </UModal>
 </template>

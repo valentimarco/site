@@ -76,6 +76,18 @@ export default defineContentConfig({
         repos: z.array(z.string()).max(12),
       }),
     }),
+    blog: defineCollection({
+      type: 'page',
+      source: 'blog/*.md',
+      schema: z.object({
+        title: z.string(),
+        description: z.string(),
+        date: z.string(),
+        image: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+        draft: z.boolean().optional().default(false),
+      }),
+    }),
     cv: defineCollection({
       type: 'data',
       source: 'cv.yml',

@@ -181,7 +181,6 @@ if (typeof window !== 'undefined') {
   <UButton size="lg" icon="i-hugeicons-printer" label="Download PDF" color="primary" @click="handlePrint" />
 </div>
 
-<ThemeButton />
 </template>
 
 <style scoped>
