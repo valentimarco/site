@@ -10,6 +10,9 @@ const { profile, repos, contributions } = await useGitHub({ username, name, emai
 
 const showAllProjects = ref(false)
 
+function showMore() { showAllProjects.value = true }
+function showLess() { showAllProjects.value = false }
+
 const visibleProjects = computed(() => {
   if (showAllProjects.value) return repos.value.list
   return repos.value.list.slice(0, 6)
@@ -23,7 +26,7 @@ useHead({
 
 <template>
   <BlurReveal
-    class="min-h-screen max-w-4xl mx-auto not-print:pt-12 print:max-w-none selection:bg-primary selection:text-neutral-900">
+    class="min-h-screen max-w-4xl mx-auto print:max-w-none selection:bg-primary selection:text-neutral-900">
     <div class="p-4 space-y-4 print:p-0">
       <UCard variant="subtle" class="print:bg-transparent">
         <div class="flex flex-col gap-4">
@@ -107,9 +110,9 @@ useHead({
         </div>
         <div v-if="repos.list.length > 6" class="flex justify-center gap-4">
           <UButton v-if="!showAllProjects" variant="subtle" color="neutral" icon="i-hugeicons-arrow-down-01"
-                   label="Show more" @click="showAllProjects = true" />
+                   label="Show more" @click="showMore" />
           <UButton v-else variant="subtle" color="neutral" icon="i-hugeicons-arrow-up-01" label="Show less"
-                   @click="showAllProjects = false" />
+                   @click="showLess" />
           <UButton v-if="repos.list.length >= 12" variant="subtle" color="neutral" icon="i-hugeicons-github"
                    label="View all on GitHub" :to="`https://github.com/${username}?tab=repositories`" target="_blank"
                    external />

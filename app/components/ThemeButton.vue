@@ -1,10 +1,22 @@
 <script lang="ts" setup>
+const props = withDefaults(defineProps<{
+  position?: 'fixed' | 'inline'
+}>(), {
+  position: 'fixed',
+})
+
 const colorMode = useColorMode()
 
 const nextTheme = computed(() => colorMode.value === 'dark' ? 'light' : 'dark')
 
 const isLight = computed(() => colorMode.value === 'light')
 const tooltipText = computed(() => isLight.value ? 'light attracts bugs, switch the light here' : 'Toggle Theme')
+
+const buttonClass = computed(() => {
+  return props.position === 'fixed'
+    ? 'fixed bottom-4 md:top-4 md:bottom-auto left-4 rounded-full z-50'
+    : 'rounded-full'
+})
 
 function switchTheme() {
   colorMode.preference = nextTheme.value
@@ -41,7 +53,7 @@ function startViewTransition(event: MouseEvent) {
 
 <template>
 <UTooltip arrow :text="tooltipText" class="no-print">
-  <UButton class="fixed bottom-4 md:top-4 md:bottom-auto left-4 rounded-full z-50" :class="{ 'blink-button': isLight }"
+  <UButton :class="[buttonClass, { 'blink-button': isLight }]"
     size="lg" color="neutral" square aria-label="Toggle Theme" variant="subtle"
     :icon="nextTheme === 'dark' ? 'i-hugeicons-sun-03' : 'i-hugeicons-moon-02'" @click="startViewTransition" />
 </UTooltip>

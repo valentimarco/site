@@ -36,7 +36,8 @@ useSeoMeta({
 <template>
   <UApp :tooltip="{ delayDuration: 300 }">
     <NavBar />
-    <NuxtPage />
-    <ThemeButton />
+    <div class="not-print:pt-16">
+      <NuxtPage />
+    </div>
   </UApp>
 </template>

@@ -79,7 +79,7 @@ if (typeof window !== 'undefined') {
 
 <template>
 <BlurReveal
-  class="min-h-screen max-w-4xl mx-auto not-print:pt-12 print:max-w-none selection:bg-primary selection:text-neutral-900">
+  class="min-h-screen max-w-4xl mx-auto print:max-w-none selection:bg-primary selection:text-neutral-900">
   <div class="p-4 space-y-4 print:p-0">
     <UCard variant="subtle" class="print:bg-transparent">
       <div class="space-y-4">

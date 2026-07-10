@@ -15,15 +15,15 @@ function isActive(link: typeof links[number]) {
 
 <template>
   <nav class="fixed top-0 left-0 right-0 z-50 print:hidden">
-    <div class="max-w-4xl mx-auto px-4 pt-4">
-      <div class="flex items-center justify-between rounded-lg border border-default bg-background/70 backdrop-blur-md px-4 py-2 shadow-sm">
+    <div class="px-4 pt-4">
+      <div class="grid grid-cols-3 items-center rounded-lg border border-default bg-background/70 backdrop-blur-md px-4 py-2 shadow-sm">
         <NuxtLink
           to="/"
-          class="text-sm font-semibold text-highlighted hover:text-primary transition-colors"
+          class="justify-self-start text-sm font-semibold text-highlighted hover:text-primary transition-colors"
         >
           Marco Valenti
         </NuxtLink>
-        <div class="flex items-center gap-1">
+        <div class="flex items-center justify-center gap-1">
           <NuxtLink
             v-for="link in links"
             :key="link.to"
@@ -36,6 +36,9 @@ function isActive(link: typeof links[number]) {
             <UIcon :name="link.icon" class="size-4" />
             <span class="hidden sm:inline">{{ link.label }}</span>
           </NuxtLink>
+        </div>
+        <div class="justify-self-end">
+          <ThemeButton position="inline" />
         </div>
       </div>
     </div>
