@@ -2,7 +2,7 @@
 const { data: posts } = await useAsyncData(
   'blog-posts',
   () => queryCollection('blog')
-    .where('draft', '!=', true)
+    //.where('draft', '!=', true)
     .order('date', 'DESC')
     .all(),
   { server: true },
@@ -56,7 +56,7 @@ useHead({
             </div>
           </template>
 
-          <NuxtLink :to="`/blog/${post.stem}`" class="group block space-y-2">
+          <NuxtLink :to="post.path" class="group block space-y-2">
             <h2 class="text-lg font-semibold text-highlighted group-hover:text-primary transition-colors">
               {{ post.title }}
             </h2>
@@ -67,7 +67,7 @@ useHead({
 
           <template #footer>
             <NuxtLink
-              :to="`/blog/${post.stem}`"
+              :to="post.path"
               class="text-sm text-primary font-medium hover:underline"
             >
               Read more →

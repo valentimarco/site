@@ -1,10 +1,9 @@
 <script setup lang="ts">
 const route = useRoute()
-const slug = route.params.slug
 
 const { data: post } = await useAsyncData(
-  `blog-post-${slug}`,
-  () => queryCollection('blog').path(`/blog/${slug}`).first(),
+  `blog-post-${route.path}`,
+  () => queryCollection('blog').path(route.path).first(),
   { server: true },
 )
 
@@ -31,6 +30,9 @@ useSeoMeta({
   ogDescription: post.value.description,
   ogType: 'article',
   ogUrl: route.fullPath,
+  twitterTitle: title,
+  twitterDescription: post.value.description,
+  twitterCard: 'summary',
 })
 </script>
 
