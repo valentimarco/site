@@ -1,15 +1,59 @@
 <script setup lang="ts">
 const route = useRoute()
+const toast = useToast()
+const downloading = ref(false)
 
 const links = [
   { label: 'Home', to: '/', icon: 'i-hugeicons-home-01' },
   { label: 'Blog', to: '/blog', icon: 'i-hugeicons-blogger' },
-  { label: 'CV', to: '/cv', icon: 'i-hugeicons-file-01' },
 ]
 
 function isActive(link: typeof links[number]) {
   if (link.to === '/') return route.path === '/'
   return route.path.startsWith(link.to)
+}
+
+async function downloadPdf() {
+  if (downloading.value) return
+  downloading.value = true
+
+  toast.add({
+    title: 'Preparing your CV…',
+    icon: 'i-hugeicons-file-01',
+    duration: 5000,
+  })
+
+  try {
+    const response = await fetch('/api/cv-pdf')
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'cv.pdf'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast.add({
+      title: 'CV downloaded!',
+      icon: 'i-hugeicons-download-01',
+      color: 'success',
+      duration: 3000,
+    })
+  }
+  catch (error) {
+    toast.add({
+      title: 'Failed to download CV',
+      description: 'Please try again later',
+      icon: 'i-hugeicons-alert-02',
+      color: 'error',
+      duration: 5000,
+    })
+  }
+  finally {
+    downloading.value = false
+  }
 }
 </script>
 
@@ -36,6 +80,14 @@ function isActive(link: typeof links[number]) {
             <UIcon :name="link.icon" class="size-4" />
             <span class="hidden sm:inline">{{ link.label }}</span>
           </NuxtLink>
+          <button
+            :disabled="downloading"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors text-muted hover:text-highlighted hover:bg-muted/50 disabled:opacity-50 disabled:cursor-wait"
+            @click="downloadPdf"
+          >
+            <UIcon name="i-hugeicons-download-01" class="size-4" />
+            <span class="hidden sm:inline">CV 📥</span>
+          </button>
         </div>
         <div class="justify-self-end">
           <ThemeButton position="inline" />

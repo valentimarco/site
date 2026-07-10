@@ -75,11 +75,6 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    '/cv': {
-      headers: {
-        'X-Frame-Options': 'SAMEORIGIN',
-      },
-    },
     '/blog': {
       cache: {
         maxAge: 300, // 5 min at edge
