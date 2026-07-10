@@ -3,7 +3,6 @@ import { version } from './package.json'
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
-
   modules: [
     'motion-v/nuxt',
     'nuxt-vitalizer',
@@ -16,11 +15,13 @@ export default defineNuxtConfig({
     '@compodium/nuxt',
     '@nuxt/eslint',
     '@nuxt/hints',
+    'nitro-cloudflare-dev'
   ],
 
   vite: {
     optimizeDeps: {
       include: [
+        '@octokit/rest',
         '@vue/devtools-core',
         '@vue/devtools-kit',
       ],
@@ -33,11 +34,8 @@ export default defineNuxtConfig({
   },
 
   ssr: true,
-
   css: ['~/assets/css/main.css'],
-
   compatibilityDate: 'latest',
-
   spaLoadingTemplate: './loading.html',
 
   experimental: {
@@ -48,6 +46,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    githubToken: process.env.GITHUB_TOKEN || '',
     public: {
       version,
     },
@@ -81,5 +80,19 @@ export default defineNuxtConfig({
         'X-Frame-Options': 'SAMEORIGIN',
       },
     },
+    '/api/github': {
+      cache: {
+        maxAge: 3600 // Cache at edge for 1 hour
+      }
+    }
   },
+
+  nitro: {
+    preset: "cloudflare_module",
+
+    cloudflare: {
+      deployConfig: true,
+      nodeCompat: true
+    }
+  }
 })

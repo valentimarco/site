@@ -1,16 +1,4 @@
-import type { RestEndpointMethodTypes } from '@octokit/rest'
+// Re-export types derived from Zod schemas for backward compatibility
+// New code should use the auto-imported schemas from shared/types/ directly.
 
-export type GitHubRepository = RestEndpointMethodTypes['repos']['get']['response']['data']
-
-export interface ContributionSummary {
-  repoFullName: string
-  repoUrl: string
-  prCount: number
-  lastPrUpdatedAt: string
-  stars: number
-  recentPrs: {
-    title: string
-    url: string
-    updated_at: string
-  }[]
-}
+export type { ContributionPr, ContributionSummaryType as ContributionSummary, GitHubApiResponse, GitHubProfileType, GitHubRepositoryType as GitHubRepository } from '#shared/types/schemas'
