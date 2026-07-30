@@ -52,11 +52,11 @@ function startViewTransition(event: MouseEvent) {
 </script>
 
 <template>
-<UTooltip arrow :text="tooltipText" class="no-print">
-  <UButton :class="[buttonClass, { 'blink-button': isLight }]"
-    size="lg" color="neutral" square aria-label="Toggle Theme" variant="subtle"
-    :icon="nextTheme === 'dark' ? 'i-hugeicons-sun-03' : 'i-hugeicons-moon-02'" @click="startViewTransition" />
-</UTooltip>
+  <UTooltip arrow :text="tooltipText" class="no-print">
+    <UButton :class="[buttonClass, { 'blink-button': isLight }]"
+             size="lg" color="neutral" square aria-label="Toggle Theme" variant="subtle"
+             :icon="nextTheme === 'dark' ? 'i-hugeicons-sun-03' : 'i-hugeicons-moon-02'" @click="startViewTransition" />
+  </UTooltip>
 </template>
 
 <style scoped>

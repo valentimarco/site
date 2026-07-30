@@ -2,7 +2,7 @@
 const { data: posts } = await useAsyncData(
   'blog-posts',
   () => queryCollection('blog')
-    //.where('draft', '!=', true)
+    // .where('draft', '!=', true)
     .order('date', 'DESC')
     .all(),
   { server: true },
@@ -21,9 +21,9 @@ const filteredPosts = computed(() => {
 
   const q = search.value.toLowerCase()
   return posts.value.filter(post =>
-    post.title.toLowerCase().includes(q) ||
-    post.description?.toLowerCase().includes(q) ||
-    post.tags?.some(tag => tag.toLowerCase().includes(q))
+    post.title.toLowerCase().includes(q)
+    || post.description?.toLowerCase().includes(q)
+    || post.tags?.some(tag => tag.toLowerCase().includes(q)),
   )
 })
 
@@ -113,7 +113,7 @@ useHead({
                 />
                 <UBadge
                   v-for="tag in post.tags"
-                  :key="'dup-' + tag"
+                  :key="`dup-${tag}`"
                   :label="tag"
                   variant="soft"
                   size="md"
@@ -148,12 +148,16 @@ useHead({
 
       <div v-else-if="!posts?.length" class="text-center py-12">
         <UIcon name="i-hugeicons-news" class="size-12 mx-auto text-muted mb-4" />
-        <p class="text-lg text-muted">No posts yet. Stay tuned!</p>
+        <p class="text-lg text-muted">
+          No posts yet. Stay tuned!
+        </p>
       </div>
 
       <div v-else class="text-center py-12">
         <UIcon name="i-hugeicons-search-01" class="size-12 mx-auto text-muted mb-4" />
-        <p class="text-lg text-muted">No posts match your search.</p>
+        <p class="text-lg text-muted">
+          No posts match your search.
+        </p>
       </div>
     </div>
   </BlurReveal>

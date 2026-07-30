@@ -1,6 +1,5 @@
 import { Octokit } from '@octokit/rest'
 
-
 export default defineEventHandler(async (event) => {
   // 1. Validate Input (Query)
   const rawQuery = getQuery(event)
@@ -33,7 +32,7 @@ export default defineEventHandler(async (event) => {
       location: res.data.location || location,
     }
   }
-  catch (err) {
+  catch {
     profileData = {
       name,
       email,
@@ -56,7 +55,7 @@ export default defineEventHandler(async (event) => {
         return null
       }
     }))
-    reposList = results.filter((r) => r !== null)
+    reposList = results.filter(r => r !== null)
   }
   catch {}
 
@@ -142,9 +141,8 @@ export default defineEventHandler(async (event) => {
 
   // 2. Validate Output (Response)
   const outputValidation = gitHubApiResponseSchema.safeParse(rawResponse)
-  if (!outputValidation.success) {
+  if (!outputValidation.success)
     console.warn('API output schema validation mismatch, returning sanitized/fallback data', outputValidation.error)
-  }
 
   return outputValidation.success ? outputValidation.data : rawResponse
 })

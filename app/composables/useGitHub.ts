@@ -8,10 +8,27 @@ interface UseGitHubOptions {
   projectSlugs: string[]
 }
 
+interface GitHubProfileData {
+  name: string
+  email: string
+  location: string
+  created_at: string
+  followers: number
+  following: number
+  fetchedAt: Date
+}
+
+// Explicit response shape: the inferred /api/github union loses `profile` on one branch
+interface GitHubData {
+  profile: GitHubProfileData
+  repos: { list: GitHubRepository[], fetchedAt?: Date }
+  contributions: { list: ContributionSummary[], fetchedAt?: Date }
+}
+
 export async function useGitHub(options: UseGitHubOptions) {
   const { username, name, email, location, projectSlugs } = options
 
-  const { data } = await useFetch('/api/github', {
+  const { data } = await useFetch<GitHubData>('/api/github', {
     query: {
       username,
       name,

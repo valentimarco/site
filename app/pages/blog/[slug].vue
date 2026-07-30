@@ -7,9 +7,8 @@ const { data: post } = await useAsyncData(
   { server: true },
 )
 
-if (!post.value) {
+if (!post.value)
   throw createError({ statusCode: 404, statusMessage: 'Post not found' })
-}
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
@@ -57,20 +56,22 @@ useSeoMeta({
             <h1 class="text-3xl md:text-4xl font-bold text-highlighted leading-tight">
               {{ post.title }}
             </h1>
-            <div class="flex flex-wrap items-center gap-3 text-base text-muted">
+            <span v-if="post.tags && post.tags.length" class="flex flex-wrap gap-1.5">
+              <UBadge
+                v-for="tag in post.tags"
+                :key="tag"
+                :label="tag"
+                variant="soft"
+                size="sm"
+                color="neutral"
+              />
+            </span>
+            <div class="flex flex-col md:flex-row md:items-center gap-3 text-base text-muted">
               <time>{{ formatDate(post.date) }}</time>
-              <span v-if="post.tags && post.tags.length" class="flex flex-wrap gap-1.5">
-                <UBadge
-                  v-for="tag in post.tags"
-                  :key="tag"
-                  :label="tag"
-                  variant="soft"
-                  size="sm"
-                                    color="neutral"
-                                  />
-                                </span>
-                              </div>
-                            </header>
+            </div>
+          </header>
+
+          <hr class="border-default block md:hidden">
 
           <!-- Content -->
           <div class="prose prose-neutral dark:prose-invert max-w-none prose-a:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-muted prose-pre:border prose-pre:border-default">

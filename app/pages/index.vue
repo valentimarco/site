@@ -10,8 +10,12 @@ const { profile, repos, contributions } = await useGitHub({ username, name, emai
 
 const showAllProjects = ref(false)
 
-function showMore() { showAllProjects.value = true }
-function showLess() { showAllProjects.value = false }
+function showMore() {
+  showAllProjects.value = true
+}
+function showLess() {
+  showAllProjects.value = false
+}
 
 const visibleProjects = computed(() => {
   if (showAllProjects.value) return repos.value.list

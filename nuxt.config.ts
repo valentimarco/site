@@ -15,7 +15,7 @@ export default defineNuxtConfig({
     '@compodium/nuxt',
     '@nuxt/eslint',
     '@nuxt/hints',
-    'nitro-cloudflare-dev'
+    'nitro-cloudflare-dev',
   ],
 
   vite: {
@@ -87,17 +87,17 @@ export default defineNuxtConfig({
     },
     '/api/github': {
       cache: {
-        maxAge: 3600 // Cache at edge for 1 hour
-      }
-    }
+        maxAge: 3600, // Cache at edge for 1 hour
+      },
+    },
   },
 
   nitro: {
-    preset: "cloudflare_module",
+    preset: 'cloudflare_module',
 
     cloudflare: {
       deployConfig: true,
-      nodeCompat: true
-    }
-  }
+      nodeCompat: true,
+    },
+  },
 })

@@ -3,6 +3,12 @@ const route = useRoute()
 const toast = useToast()
 const downloading = ref(false)
 
+const { data: profile } = await useAsyncData(
+  'navbar-profile',
+  () => queryCollection('profile').first(),
+  { server: true },
+)
+
 const links = [
   { label: 'Home', to: '/', icon: 'i-hugeicons-home-01' },
   { label: 'Blog', to: '/blog', icon: 'i-hugeicons-blogger' },
@@ -42,7 +48,7 @@ async function downloadPdf() {
       duration: 3000,
     })
   }
-  catch (error) {
+  catch {
     toast.add({
       title: 'Failed to download CV',
       description: 'Please try again later',
@@ -61,12 +67,29 @@ async function downloadPdf() {
   <nav class="fixed top-0 left-0 right-0 z-50 print:hidden">
     <div class="px-4 pt-4">
       <div class="grid grid-cols-3 items-center rounded-lg border border-default bg-background/70 backdrop-blur-md px-4 py-2 shadow-sm">
+        <!-- Desktop: name text -->
         <NuxtLink
           to="/"
-          class="justify-self-start text-sm font-semibold text-highlighted hover:text-primary transition-colors"
+          class="justify-self-start hidden md:block text-sm font-semibold text-highlighted hover:text-primary transition-colors"
         >
           Marco Valenti
         </NuxtLink>
+        <!-- Mobile: avatar with popover -->
+        <UPopover mode="click" class="justify-self-start md:hidden">
+          <button class="cursor-pointer rounded-full">
+            <UAvatar src="/me.png" alt="Marco Valenti" size="sm" />
+          </button>
+          <template #content>
+            <div class="p-3 space-y-1">
+              <p class="text-sm font-semibold text-highlighted">
+                {{ profile?.name }}
+              </p>
+              <p class="text-xs text-muted">
+                {{ profile?.jobTitle }}
+              </p>
+            </div>
+          </template>
+        </UPopover>
         <div class="flex items-center justify-center gap-1">
           <NuxtLink
             v-for="link in links"

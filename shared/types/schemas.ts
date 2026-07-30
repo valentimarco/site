@@ -17,7 +17,6 @@ export const gitHubQuerySchema = z.object({
 
 export type GitHubQueryInput = z.infer<typeof gitHubQuerySchema>
 
-
 // ============================================================
 // OUTPUT SCHEMAS
 // ============================================================
