@@ -15,7 +15,6 @@ export default defineNuxtConfig({
     '@compodium/nuxt',
     '@nuxt/eslint',
     '@nuxt/hints',
-    'nitro-cloudflare-dev',
   ],
 
   vite: {
@@ -93,7 +92,7 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    preset: 'cloudflare_module',
+    preset: 'cloudflare_pages',
 
     cloudflare: {
       deployConfig: true,
