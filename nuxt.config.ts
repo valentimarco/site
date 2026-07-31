@@ -92,7 +92,8 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    preset: 'cloudflare_pages',
+    preset: 'cloudflare_module',
+    tracingChannel: true,
 
     cloudflare: {
       deployConfig: true,
