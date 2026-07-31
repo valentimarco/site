@@ -6,7 +6,7 @@
 	"observability": {
 		"enabled": true
 	},
-	"main": "./.output/server/index.mjs",
+	//"main": "./.output/server/index.mjs",
 	// "assets": {
 	// 	"binding": "stuff",
 	// 	"directory": "./.output/public/"
