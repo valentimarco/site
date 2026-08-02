@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     '@nuxt/content',
     '@nuxt/ui',
     '@nuxt/image',
-    '@compodium/nuxt',
+    ...(process.env.NODE_ENV === 'development' ? ['@compodium/nuxt'] : []),
     '@nuxt/eslint',
     '@nuxt/hints',
   ],
@@ -24,11 +24,6 @@ export default defineNuxtConfig({
         '@vue/devtools-core',
         '@vue/devtools-kit',
       ],
-    },
-    build: {
-      rollupOptions: {
-        external: ['sharp'],
-      },
     },
   },
 
@@ -58,16 +53,17 @@ export default defineNuxtConfig({
   },
 
   ogImage: {
-    enabled: false,
+    enabled: false, // profile.md ships a static ogImage via useSeoMeta; module generation is intentionally off
   },
 
   schemaOrg: {
-    enabled: false,
+    enabled: true,
   },
 
   sitemap: {
-    enabled: false,
+    enabled: true,
   },
+  site: {url: 'valentimarco.it'},
 
   colorMode: {
     disableTransition: false,
@@ -87,6 +83,11 @@ export default defineNuxtConfig({
     '/api/github': {
       cache: {
         maxAge: 3600, // Cache at edge for 1 hour
+      },
+    },
+    '/api/cv-pdf': {
+      cache: {
+        maxAge: 3600, // Cache at edge for 1 hour (PDF is static personal data; protects GitHub rate limit)
       },
     },
   },

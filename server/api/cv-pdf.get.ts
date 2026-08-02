@@ -1,6 +1,5 @@
 import type { Bindings } from '../utils/cv-text'
-// Explicit import: the global auto-import resolves to the 1-arg client signature under vue-tsc
-import { queryCollection } from '@nuxt/content/nitro'
+import { queryCollection } from '@nuxt/content/server'
 import { Octokit } from '@octokit/rest'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { fetchContributions } from '../utils/cv-github'
@@ -8,7 +7,6 @@ import { CvLayout, FS_BODY, FS_HEADING, FS_SMALL, FS_SUBTITLE, FS_TITLE, GRAY, L
 import { computeAge, fmtDate, fmtRange, parseMinimarkBody } from '../utils/cv-text'
 
 export default defineEventHandler(async (event) => {
-  // 1. Fetch content collections
   const [profile, skills, experiences, education, certifications, cvConfig] = await Promise.all([
     queryCollection(event, 'profile').first(),
     queryCollection(event, 'skills').first(),
@@ -21,12 +19,10 @@ export default defineEventHandler(async (event) => {
   if (!profile)
     throw createError({ statusCode: 404, statusMessage: 'Profile not found' })
 
-  // 2. Fetch GitHub contributions
   const config = useRuntimeConfig(event)
   const octokit = new Octokit({ auth: config.githubToken || undefined })
   const contributions = await fetchContributions(profile.username || '', octokit)
 
-  // 3. Build PDF
   const pdfDoc = await PDFDocument.create()
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
@@ -37,7 +33,6 @@ export default defineEventHandler(async (event) => {
     '$doc.age': String(computeAge(profile.birthDate)),
   }
 
-  // ── Pre-process data ──────────────────────────────────
   const summaryBlocks = parseMinimarkBody(profile.body, bindings)
   const expItems = (experiences || []).map(e => ({
     ...e,
@@ -167,7 +162,6 @@ export default defineEventHandler(async (event) => {
   layout.drawLine('I authorise the processing of my personal data in this CV in accordance with Regulation (EU) 2016/679 of the European Parliament and of the Council (GDPR).', FS_SMALL, { color: GRAY })
   layout.drawLine(`© ${currentYear} ${name}`, FS_SMALL, { color: GRAY })
 
-  // 4. Return the PDF
   const pdfBytes = await pdfDoc.save() as Uint8Array
   setResponseHeader(event, 'Content-Type', 'application/pdf')
   setResponseHeader(event, 'Content-Disposition', 'attachment; filename="cv.pdf"')

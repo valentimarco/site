@@ -1,4 +1,11 @@
+import type { ContributionSummaryType, GitHubProfileType, GitHubRepositoryType } from '#shared/types/schemas'
+// Explicit import: the global auto-import resolves to the 1-arg client signature under vue-tsc
+import { queryCollection } from '@nuxt/content/nitro'
 import { Octokit } from '@octokit/rest'
+
+type ProfileData = GitHubProfileType
+type RepoData = GitHubRepositoryType
+type ContributionSummaryData = ContributionSummaryType
 
 export default defineEventHandler(async (event) => {
   // 1. Validate Input (Query)
@@ -12,55 +19,78 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { username, name, email, location, projectSlugs } = validation.data
+  const { username, projectSlugs } = validation.data
+
+  // Resolve identity from content instead of client query params (PII stays out of URLs/logs)
+  let profileFallback: Pick<ProfileData, 'name' | 'email' | 'location'> = {}
+  try {
+    const profileContent = await queryCollection(event, 'profile').first()
+    profileFallback = {
+      name: profileContent?.name,
+      email: profileContent?.email,
+      location: profileContent?.location,
+    }
+  }
+  catch (error) {
+    console.warn('[api/github] failed to load profile content, continuing with empty fallback', error)
+  }
 
   const config = useRuntimeConfig(event)
-  const auth = config.githubToken || undefined
-
   const octokit = new Octokit({
-    auth,
+    auth: config.githubToken || undefined,
   })
 
-  // 1. Fetch Profile
-  let profileData: any = null
+  // 2. Fetch Profile
+  let profileData: ProfileData = {
+    source: 'fallback',
+    ...profileFallback,
+    created_at: new Date().toISOString(),
+    followers: 0,
+    following: 0,
+  }
   try {
     const res = await octokit.rest.users.getByUsername({ username })
     profileData = {
-      ...res.data,
-      name: res.data.name || name,
-      email: res.data.email || email,
-      location: res.data.location || location,
+      source: 'github',
+      name: res.data.name || profileFallback.name,
+      email: res.data.email || profileFallback.email,
+      location: res.data.location || profileFallback.location,
+      created_at: res.data.created_at,
+      followers: res.data.followers,
+      following: res.data.following,
     }
   }
-  catch {
-    profileData = {
-      name,
-      email,
-      location,
-      created_at: new Date().toISOString(),
-      followers: 0,
-      following: 0,
-    }
+  catch (error) {
+    console.warn('[api/github] profile fetch failed, serving fallback profile', error)
   }
 
-  // 2. Fetch Repositories
-  let reposList: any[] = []
+  // 3. Fetch Repositories
+  let reposList: RepoData[] = []
   try {
-    const results = await Promise.all(projectSlugs.map(async (slug) => {
+    const results = await Promise.all(projectSlugs.map(async (slug): Promise<RepoData | null> => {
       try {
         const res = await octokit.rest.repos.get({ owner: username, repo: slug })
-        return res.data
+        return {
+          name: res.data.name,
+          html_url: res.data.html_url,
+          languages_url: res.data.languages_url,
+          stargazers_count: res.data.stargazers_count || 0,
+          description: res.data.description,
+        }
       }
-      catch {
+      catch (error) {
+        console.warn(`[api/github] repo fetch failed: ${username}/${slug}`, error)
         return null
       }
     }))
-    reposList = results.filter(r => r !== null)
+    reposList = results.filter((r): r is RepoData => r !== null)
   }
-  catch {}
+  catch (error) {
+    console.warn('[api/github] repositories fetch failed, serving empty list', error)
+  }
 
-  // 3. Fetch Contributions
-  let contributionsList: any[] = []
+  // 4. Fetch Contributions
+  let contributionsList: ContributionSummaryData[] = []
   try {
     const res = await octokit.rest.search.issuesAndPullRequests({
       q: `is:pr is:merged author:${username}`,
@@ -69,7 +99,7 @@ export default defineEventHandler(async (event) => {
       order: 'desc',
     })
 
-    const summaryMap = new Map<string, any>()
+    const summaryMap = new Map<string, ContributionSummaryData>()
 
     for (const item of res.data.items) {
       const repositoryUrl = item.repository_url
@@ -81,7 +111,7 @@ export default defineEventHandler(async (event) => {
 
       const updatedAt = item.updated_at || item.closed_at || item.created_at || new Date().toISOString()
       const existing = summaryMap.get(repoFullName)
-      const summary: any = existing || {
+      const summary: ContributionSummaryData = existing || {
         repoFullName,
         repoUrl: `https://github.com/${repoFullName}`,
         prCount: 0,
@@ -120,7 +150,8 @@ export default defineEventHandler(async (event) => {
           stars: repoRes.data.stargazers_count || 0,
         }
       }
-      catch {
+      catch (error) {
+        console.warn(`[api/github] repo enrichment failed: ${summary.repoFullName}`, error)
         return summary
       }
     }))
@@ -131,7 +162,9 @@ export default defineEventHandler(async (event) => {
         || new Date(b.lastPrUpdatedAt).getTime() - new Date(a.lastPrUpdatedAt).getTime())
       .slice(0, 6)
   }
-  catch {}
+  catch (error) {
+    console.warn('[api/github] contributions fetch failed, serving empty list', error)
+  }
 
   const rawResponse = {
     profile: profileData,
@@ -139,10 +172,10 @@ export default defineEventHandler(async (event) => {
     contributions: { list: contributionsList },
   }
 
-  // 2. Validate Output (Response)
+  // 5. Validate Output (Response)
   const outputValidation = gitHubApiResponseSchema.safeParse(rawResponse)
   if (!outputValidation.success)
-    console.warn('API output schema validation mismatch, returning sanitized/fallback data', outputValidation.error)
+    console.warn('[api/github] output schema validation mismatch, returning sanitized/fallback data', outputValidation.error)
 
   return outputValidation.success ? outputValidation.data : rawResponse
 })

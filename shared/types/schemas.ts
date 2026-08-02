@@ -57,6 +57,7 @@ export const gitHubProfileSchema = z.object({
   created_at: z.string().optional(),
   followers: z.number().int().nonnegative().optional(),
   following: z.number().int().nonnegative().optional(),
+  source: z.enum(['github', 'fallback']).optional(),
 })
 
 export type GitHubProfileType = z.infer<typeof gitHubProfileSchema>

@@ -1,19 +1,14 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "site",
-	//"pages_build_output_dir": "./dist",
 	"compatibility_date": "2026-07-10",
 	"observability": {
-	  "traces": {
-      "enabled": true
-    },
+		"traces": {
+			"enabled": true
+		},
 		"enabled": true
 	},
 	"main": "./.output/server/index.mjs",
-	// "assets": {
-	// 	"binding": "stuff",
-	// 	"directory": "./.output/public/"
-	// },
 	"compatibility_flags": [
 		"nodejs_compat"
 	],

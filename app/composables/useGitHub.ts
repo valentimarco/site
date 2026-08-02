@@ -31,9 +31,6 @@ export async function useGitHub(options: UseGitHubOptions) {
   const { data } = await useFetch<GitHubData>('/api/github', {
     query: {
       username,
-      name,
-      email,
-      location,
       projectSlugs,
     },
     key: `github:${username}`,
