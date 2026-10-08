@@ -1,4 +1,4 @@
-import type { ContributionSummaryType, GitHubProfileType, GitHubRepositoryType } from '#shared/types/schemas'
+import type { ContributionSummaryType, GitHubApiResponse, GitHubProfileType, GitHubRepositoryType } from '#shared/types/schemas'
 // Explicit import: the global auto-import resolves to the 1-arg client signature under vue-tsc
 import { queryCollection } from '@nuxt/content/nitro'
 import { Octokit } from '@octokit/rest'
@@ -7,7 +7,7 @@ type ProfileData = GitHubProfileType
 type RepoData = GitHubRepositoryType
 type ContributionSummaryData = ContributionSummaryType
 
-export default defineEventHandler(async (event) => {
+const handler = defineEventHandler(async (event) => {
   // 1. Validate Input (Query)
   const rawQuery = getQuery(event)
   const validation = gitHubQuerySchema.safeParse(rawQuery)
@@ -191,4 +191,41 @@ export default defineEventHandler(async (event) => {
     console.warn('[api/github] output schema validation mismatch, returning sanitized/fallback data', outputValidation.error)
 
   return outputValidation.success ? outputValidation.data : rawResponse
+})
+
+/**
+ * A degraded payload is still a `200`, so a plain route-rule cache would store it and then serve
+ * it for the full `maxAge` — one expired token or rate-limit blip left the portfolio without its
+ * Projects and Contributions sections for a full hour, and nothing at the edge logged it. Only
+ * healthy payloads are written, and only they are ever read back.
+ */
+function isDegraded(payload: GitHubApiResponse) {
+  return payload.profile?.source !== 'github'
+    || payload.repos.list.length === 0
+    || payload.contributions.list.length === 0
+}
+
+export default defineEventHandler(async (event) => {
+  const rawQuery = getQuery(event)
+  const validation = gitHubQuerySchema.safeParse(rawQuery)
+  if (!validation.success) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `Validation failed: ${validation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+    })
+  }
+
+  // Normalised so `?a=1&b=2` and `?b=2&a=1` share one entry.
+  const { username, projectSlugs } = validation.data
+  const cacheKey = `github:${username}:${[...projectSlugs].sort().join(',')}`
+  const storage = useStorage('cache')
+
+  const cached = await storage.getItem<GitHubApiResponse>(cacheKey)
+  if (cached && !isDegraded(cached)) return cached
+
+  const payload = await handler(event)
+  if (!isDegraded(payload)) await storage.setItem(cacheKey, payload)
+  else console.warn('[api/github] degraded response not cached, serving fallback')
+
+  return payload
 })
