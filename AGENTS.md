@@ -54,7 +54,7 @@ app/                      # Nuxt frontend (srcDir = app/)
 content/                  # Nuxt Content collections (markdown + yml) — see "Content authoring"
 server/
   api/
-    github.ts             # GET /api/github — Octokit proxy: profile + repos + merged PRs
+    github.ts             # GET /api/github — Octokit proxy: profile + repos (incl. languages) + merged PRs
     cv-pdf.get.ts         # GET /api/cv-pdf — server-rendered PDF CV (pdf-lib)
   utils/
     cv-text.ts            # WinAnsi sanitization, date fns, minimark parser
@@ -107,7 +107,7 @@ Conventions:
 ### GitHub data flow
 
 1. `useGitHub` (client) → `GET /api/github?username&projectSlugs[]` (name/email/location are **not** sent; the server resolves them from the `profile` collection)
-2. `server/api/github.ts` validates query with `gitHubQuerySchema`, calls Octokit for profile, project repos, and merged PRs (`author:<username> is:pr is:merged`), dedupes by repo, enriches top repos with stars. Profile data carries a `source: 'github' | 'fallback'` flag.
+2. `server/api/github.ts` validates query with `gitHubQuerySchema`, calls Octokit for profile, project repos, and merged PRs (`author:<username> is:pr is:merged`), dedupes by repo, enriches top repos with stars and each project repo with `languages` (sorted by byte count). Profile data carries a `source: 'github' | 'fallback'` flag. All Octokit calls use `runtimeConfig.githubToken`; per-repo language failures degrade to `[]` rather than dropping the repo.
 3. Output validated against `gitHubApiResponseSchema` (shared/types/schemas.ts). On mismatch it logs a warning and returns raw data — the client is lenient.
 4. Endpoint degrades gracefully: any GitHub failure logs a warning and returns fallback data (empty lists / zeroed profile), so the site never breaks.
 

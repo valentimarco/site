@@ -70,10 +70,23 @@ export default defineEventHandler(async (event) => {
     const results = await Promise.all(projectSlugs.map(async (slug): Promise<RepoData | null> => {
       try {
         const res = await octokit.rest.repos.get({ owner: username, repo: slug })
+        // Resolved here rather than per-card in the component: the client was issuing N
+        // unauthenticated requests straight from SSR, which exhausted the 60 req/h budget and
+        // let a stale localStorage cache outrank the 403, so server and client rendered
+        // different language badges.
+        const languages = await octokit.rest.repos
+          .listLanguages({ owner: username, repo: slug })
+          .then(langRes => Object.entries(langRes.data)
+            .sort(([, a], [, b]) => b - a)
+            .map(([lang]) => lang))
+          .catch((error) => {
+            console.warn(`[api/github] languages fetch failed: ${username}/${slug}`, error)
+            return [] as string[]
+          })
         return {
           name: res.data.name,
           html_url: res.data.html_url,
-          languages_url: res.data.languages_url,
+          languages,
           stargazers_count: res.data.stargazers_count || 0,
           description: res.data.description,
         }

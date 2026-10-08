@@ -2,20 +2,6 @@
 const { repo } = defineProps<{
   repo: GitHubRepository
 }>()
-
-const { data: languages } = await useFetch(repo.languages_url, {
-  transform: (data: Record<string, number>) => {
-    return setCachedData(`languages:${repo.name}`, {
-      list: Object.entries(data).sort(([, a], [, b]) => b - a).map(([lang]) => lang),
-    })
-  },
-  key: `languages:${repo.name}`,
-  getCachedData,
-  default: () => ({
-    list: [] as string[],
-    fetchedAt: new Date(),
-  }),
-})
 </script>
 
 <template>
@@ -33,7 +19,7 @@ const { data: languages } = await useFetch(repo.languages_url, {
           {{ repo.description }}
         </p>
         <div class="flex flex-wrap gap-2">
-          <UBadge v-for="(lang, i) in languages.list" :key="i" :label="lang" variant="soft" />
+          <UBadge v-for="lang in repo.languages" :key="lang" :label="lang" variant="soft" />
         </div>
       </div>
     </UCard>

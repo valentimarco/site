@@ -40,7 +40,7 @@ function formatDate(dateStr: string) {
             <UIcon name="i-hugeicons-briefcase-01" class="size-5" />
             <span class="group-hover:text-primary transition-colors">{{ experience.company }}</span>
           </ULink>
-          <UChip standalone inset size="2xs" />
+          <DotSeparator />
           <span class="group inline-flex text-highlighted items-center gap-2">
             <UIcon name="i-hugeicons-pin-location-03" class="size-5" />
             {{ experience.location }}

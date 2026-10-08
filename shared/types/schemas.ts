@@ -24,7 +24,7 @@ export type GitHubQueryInput = z.infer<typeof gitHubQuerySchema>
 export const gitHubRepositorySchema = z.object({
   name: z.string(),
   html_url: z.string(),
-  languages_url: z.string(),
+  languages: z.array(z.string()),
   stargazers_count: z.number().int().nonnegative(),
   description: z.string().nullable().optional(),
 })

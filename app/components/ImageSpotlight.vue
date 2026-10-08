@@ -31,10 +31,13 @@ const currentOpacity = computed(() => isHovering.value ? 1 : 0)
   <div ref="containerRef" role="button" tabindex="0"
        class="relative overflow-hidden cursor-none select-none focus:outline-none" :aria-label="alt"
        @mousemove="handleMouseMove" @mouseleave="handleMouseLeave" @focusout="handleMouseLeave">
-    <img :src="baseImage" :alt="alt" class="w-full h-full object-cover" draggable="false">
-    <img :src="spotlightImage" :alt="`${alt} spotlight`"
-         class="absolute spotlight inset-0 w-full h-full object-cover transition-opacity duration-300 ease-out pointer-events-none"
-         draggable="false">
+    <NuxtImg :src="baseImage" :alt="alt" class="w-full h-full object-cover" draggable="false"
+             format="webp" width="160" height="160" densities="x1 x2"
+             loading="eager" fetchpriority="high" preload />
+    <NuxtImg :src="spotlightImage" :alt="`${alt} spotlight`"
+             class="absolute spotlight inset-0 w-full h-full object-cover transition-opacity duration-300 ease-out pointer-events-none"
+             draggable="false"
+             format="webp" width="160" height="160" densities="x1 x2" loading="lazy" />
   </div>
 </template>
 

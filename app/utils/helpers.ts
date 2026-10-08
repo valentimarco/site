@@ -3,6 +3,11 @@ import type { NuxtApp } from '#app'
 const CACHE_TTL = 1000 * 60 * 60 // 1 hour (GitHub API rate limit)
 
 export function getCachedData(key: string, nuxtApp: NuxtApp) {
+  // When SSR recorded an error for this key there is no trustworthy payload value, so falling
+  // through to localStorage would let a stale cache outrank the server's own failure and the
+  // client would render something the server never sent.
+  if (nuxtApp.payload._errors?.[key]) return
+
   let data = nuxtApp.payload.data[key] || nuxtApp.static.data[key]
   if (!data) {
     if (!import.meta.client) return

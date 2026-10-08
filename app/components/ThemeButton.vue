@@ -7,9 +7,17 @@ const props = withDefaults(defineProps<{
 
 const colorMode = useColorMode()
 
+// The server has no access to the stored preference, so `colorMode.value` is 'light' during SSR
+// while the client already knows it — which hydrated a sun icon where the vdom expected a moon.
+// The icon is theme-dependent markup, so it is only rendered once the real preference is known.
+const isMounted = ref(false)
+onMounted(() => {
+  isMounted.value = true
+})
+
 const nextTheme = computed(() => colorMode.value === 'dark' ? 'light' : 'dark')
 
-const isLight = computed(() => colorMode.value === 'light')
+const isLight = computed(() => isMounted.value && colorMode.value === 'light')
 const tooltipText = computed(() => isLight.value ? 'light attracts bugs, switch the light here' : 'Toggle Theme')
 
 const buttonClass = computed(() => {
@@ -55,7 +63,8 @@ function startViewTransition(event: MouseEvent) {
   <UTooltip arrow :text="tooltipText" class="no-print">
     <UButton :class="[buttonClass, { 'blink-button': isLight }]"
              size="lg" color="neutral" square aria-label="Toggle Theme" variant="subtle"
-             :icon="nextTheme === 'dark' ? 'i-hugeicons-sun-03' : 'i-hugeicons-moon-02'" @click="startViewTransition" />
+             :icon="isMounted ? (nextTheme === 'dark' ? 'i-hugeicons-sun-03' : 'i-hugeicons-moon-02') : undefined"
+             @click="startViewTransition" />
   </UTooltip>
 </template>
 

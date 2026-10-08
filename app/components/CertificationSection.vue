@@ -20,7 +20,7 @@ function formatDate(dateStr: string) {
         <UIcon name="i-hugeicons-pin-location-03" class="size-5" />
         {{ certificate.issuer }}
       </span>
-      <UChip standalone inset size="2xs" />
+      <DotSeparator />
       <span class="group inline-flex text-highlighted items-center gap-2">
         <UIcon name="i-hugeicons-calendar-04" class="size-5" />
         {{ formatDate(certificate.issueDate) }}

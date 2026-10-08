@@ -53,7 +53,7 @@ useHead({
                    class="flex flex-wrap items-center print:hidden gap-2 text-sm">
                 <UIcon name="i-hugeicons-user-group" class="size-5" />
                 <p><strong>{{ profile.followers }}</strong> followers</p>
-                <UChip standalone inset size="2xs" />
+                <DotSeparator />
                 <p><strong>{{ profile.following }}</strong> following</p>
               </div>
               <div class="items-center flex flex-wrap gap-2 text-sm">
@@ -65,7 +65,7 @@ useHead({
               </div>
               <div class="items-center flex flex-wrap gap-2 text-sm">
                 <template v-for="(social, index) in socials" :key="social.label">
-                  <UChip v-if="index > 0" standalone inset size="2xs" />
+                  <DotSeparator v-if="index > 0" />
                   <ULink external :to="social.url" target="_blank"
                          class="group inline-flex text-highlighted items-center gap-2">
                     <UIcon :name="social.icon" class="size-5" />
