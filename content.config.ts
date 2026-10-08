@@ -96,6 +96,7 @@ export default defineContentConfig({
           'summary',
           'experience',
           'skills',
+          'projects',
           'education',
           'certifications',
           'contributions',

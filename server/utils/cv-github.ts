@@ -8,6 +8,14 @@ export interface Contribution {
   lastPrUpdatedAt: string
 }
 
+export interface Project {
+  name: string
+  htmlUrl: string
+  description: string | null
+  stars: number
+  pushedAt: string
+}
+
 /** Fetch merged PRs to repos the user doesn't own, grouped by repo */
 export async function fetchContributions(username: string, octokit: Octokit): Promise<Contribution[]> {
   if (!username) return []
@@ -47,6 +55,30 @@ export async function fetchContributions(username: string, octokit: Octokit): Pr
       }),
     )
     return enriched.sort((a, b) => b.prCount - a.prCount || (b.stars || 0) - (a.stars || 0)).slice(0, 6)
+  }
+  catch { return [] }
+}
+
+/** Fetch the user's own repos (from projects.yml) with metadata, newest (most recently pushed) first */
+export async function fetchProjects(username: string, projectSlugs: string[], octokit: Octokit): Promise<Project[]> {
+  if (!username || !projectSlugs.length) return []
+  try {
+    const results = await Promise.all(projectSlugs.map(async (slug): Promise<Project | null> => {
+      try {
+        const res = await octokit.rest.repos.get({ owner: username, repo: slug })
+        return {
+          name: res.data.name,
+          htmlUrl: res.data.html_url,
+          description: res.data.description,
+          stars: res.data.stargazers_count || 0,
+          pushedAt: res.data.pushed_at || res.data.created_at || '',
+        }
+      }
+      catch { return null }
+    }))
+    return results
+      .filter((r): r is Project => r !== null)
+      .sort((a, b) => new Date(b.pushedAt).getTime() - new Date(a.pushedAt).getTime())
   }
   catch { return [] }
 }

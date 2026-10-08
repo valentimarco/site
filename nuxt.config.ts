@@ -63,7 +63,7 @@ export default defineNuxtConfig({
   sitemap: {
     enabled: true,
   },
-  site: {url: 'valentimarco.it'},
+  site: { url: 'valentimarco.it' },
 
   colorMode: {
     disableTransition: false,
@@ -80,15 +80,15 @@ export default defineNuxtConfig({
         maxAge: 3600, // 1 hour for individual posts
       },
     },
-    '/api/github': {
-      cache: {
-        maxAge: 3600, // Cache at edge for 1 hour
-      },
-    },
+    // Caching for /api/github is defined in server/api/github.ts via defineCachedEventHandler,
+    // not here: a plain routeRule cache cannot tell a healthy response from a degraded one, so a
+    // single GitHub failure (bad token, rate limit, network blip) would pin an empty
+    // `source: 'fallback'` payload at the edge for the full maxAge.
     '/api/cv-pdf': {
-      cache: {
-        maxAge: 3600, // Cache at edge for 1 hour (PDF is static personal data; protects GitHub rate limit)
-      },
+      // Set NUXT_CV_PDF_DISABLE_CACHE=1 (e.g. in local .env) to bypass the edge cache while iterating on the PDF
+      cache: ['1', 'true', 'yes', 'on'].includes((process.env.NUXT_CV_PDF_DISABLE_CACHE || '').toLowerCase())
+        ? false
+        : { maxAge: 3600 }, // Cache at edge for 1 hour (PDF is static personal data; protects GitHub rate limit)
     },
   },
 

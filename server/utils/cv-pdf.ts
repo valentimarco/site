@@ -1,6 +1,6 @@
-import type { PDFDocument, PDFFont, PDFPage, RGB } from 'pdf-lib'
+import type { PDFArray, PDFDocument, PDFFont, PDFPage, RGB } from 'pdf-lib'
 import type { TextBlock } from './cv-text'
-import { rgb } from 'pdf-lib'
+import { PDFName, PDFString, rgb } from 'pdf-lib'
 import { cleanInline } from './cv-text'
 
 // ─── Constants ─────────────────────────────────────────────
@@ -13,10 +13,13 @@ export const BOTTOM_MARGIN = 50
 
 export const FS_TITLE = 26
 export const FS_SUBTITLE = 14
+export const FS_H2 = 16
 export const FS_SECTION = 13
 export const FS_HEADING = 11
 export const FS_BODY = 10
 export const FS_SMALL = 8
+
+export const FOOTER_RESERVE = FS_SMALL * LINE_HEIGHT_RATIO * 3 + 10
 
 export const BLACK = rgb(0, 0, 0)
 export const GRAY = rgb(0.4, 0.4, 0.4)
@@ -28,6 +31,23 @@ export interface DrawLineOptions {
   maxWidth?: number
   /** Extra indent applied to wrapped continuation lines */
   hang?: number
+  /** Skip the page-break check (used by the bottom-pinned footer) */
+  noBreak?: boolean
+}
+
+export interface CenteredSegment {
+  text: string
+  font?: PDFFont
+  color?: RGB
+  url?: string
+}
+
+export interface DrawCenteredSegmentsOptions {
+  separator?: string
+  gap?: number
+  color?: RGB
+  font?: PDFFont
+  underlineLinks?: boolean
 }
 
 export interface DrawBlocksOptions {
@@ -90,7 +110,7 @@ export class CvLayout {
 
   /** Start a new page when `needed` points don't fit. Returns true if a page break happened. */
   ensurePage(needed: number = FS_BODY * LINE_HEIGHT_RATIO): boolean {
-    if (this.y - needed < BOTTOM_MARGIN) {
+    if (this.y - needed < BOTTOM_MARGIN + FOOTER_RESERVE) {
       this.page = this.doc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
       this.y = PAGE_HEIGHT - MARGIN
       return true
@@ -100,8 +120,8 @@ export class CvLayout {
 
   /** Start a new page if a block of `height` doesn't fit here but would fit on a fresh page */
   keepTogether(height: number) {
-    const fitsOnFreshPage = height <= PAGE_HEIGHT - MARGIN - BOTTOM_MARGIN
-    if (fitsOnFreshPage && this.y - height < BOTTOM_MARGIN) {
+    const fitsOnFreshPage = height <= PAGE_HEIGHT - MARGIN - BOTTOM_MARGIN - FOOTER_RESERVE
+    if (fitsOnFreshPage && this.y - height < BOTTOM_MARGIN + FOOTER_RESERVE) {
       this.page = this.doc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
       this.y = PAGE_HEIGHT - MARGIN
     }
@@ -159,7 +179,7 @@ export class CvLayout {
     const hang = opts.hang ?? 0
     const lines = wrapText(cleanInline(text), f, fontSize, opts.maxWidth ?? CONTENT_WIDTH, (opts.maxWidth ?? CONTENT_WIDTH) - hang)
     lines.forEach((line, i) => {
-      this.ensurePage(lh)
+      if (!opts.noBreak) this.ensurePage(lh)
       this.page.drawText(line, { x: i > 0 ? x + hang : x, y: this.y, size: fontSize, font: f, color: c })
       this.y -= lh
     })
@@ -198,5 +218,137 @@ export class CvLayout {
 
   drawRule(color: RGB = GRAY) {
     this.page.drawLine({ start: { x: MARGIN, y: this.y }, end: { x: PAGE_WIDTH - MARGIN, y: this.y }, thickness: 0.5, color })
+  }
+
+  /** Add a clickable URI link annotation over the given bottom-left rect (pdf-lib coords) */
+  addLink(url: string, x: number, yBottom: number, width: number, height: number) {
+    const ctx = this.doc.context
+    const annot = ctx.obj({ Type: 'Annot', Subtype: 'Link', Rect: [x, yBottom, x + width, yBottom + height], Border: [0, 0, 0] })
+    const action = ctx.obj({ Type: 'Action', S: 'URI' })
+    action.set(PDFName.of('URI'), PDFString.of(url))
+    annot.set(PDFName.of('A'), action)
+    const ref = ctx.register(annot)
+    const node = this.page.node
+    let annots = node.get(PDFName.of('Annots'))
+    if (!annots) {
+      annots = ctx.obj([])
+      node.set(PDFName.of('Annots'), annots)
+    }
+    (annots as PDFArray).push(ref)
+  }
+
+  /** Right-aligned single line at the right margin */
+  drawRightLine(text: string, fontSize: number, opts: DrawLineOptions = {}) {
+    const f = opts.font ?? this.font
+    const c = opts.color ?? BLACK
+    const w = f.widthOfTextAtSize(text, fontSize)
+    const x = w > CONTENT_WIDTH ? MARGIN : PAGE_WIDTH - MARGIN - w
+    this.ensurePage(fontSize * LINE_HEIGHT_RATIO)
+    this.page.drawText(text, { x, y: this.y, size: fontSize, font: f, color: c })
+    this.y -= fontSize * LINE_HEIGHT_RATIO
+  }
+
+  /** One left-aligned line; if `url` is set, underline it and make it a hyperlink */
+  drawLinkLine(text: string, fontSize: number, opts: DrawLineOptions & { url?: string }) {
+    const x = opts.x ?? MARGIN
+    const f = opts.font ?? this.font
+    const c = opts.color ?? BLACK
+    const clean = cleanInline(text)
+    const w = f.widthOfTextAtSize(clean, fontSize)
+    if (w > CONTENT_WIDTH) {
+      this.drawLine(text, fontSize, { x, font: f, color: c })
+      return
+    }
+    const lh = fontSize * LINE_HEIGHT_RATIO
+    this.ensurePage(lh)
+    this.page.drawText(clean, { x, y: this.y, size: fontSize, font: f, color: c })
+    if (opts.url) {
+      this.addLink(opts.url, x, this.y - fontSize * 0.6, w, fontSize * 1.4)
+      this.page.drawLine({ start: { x, y: this.y - 1.5 }, end: { x: x + w, y: this.y - 1.5 }, thickness: 0.5, color: c })
+    }
+    this.y -= lh
+  }
+
+  /** Bold label followed by regular text on the same line; wrapped lines align under the label */
+  drawLabeledLine(label: string, text: string, fontSize: number, opts: DrawLineOptions = {}) {
+    const x = opts.x ?? MARGIN
+    const c = opts.color ?? BLACK
+    const lh = fontSize * LINE_HEIGHT_RATIO
+    const labelText = cleanInline(label)
+    const labelW = this.boldFont.widthOfTextAtSize(`${labelText} `, fontSize)
+    this.page.drawText(labelText, { x, y: this.y, size: fontSize, font: this.boldFont, color: c })
+    const lines = wrapText(cleanInline(text), this.font, fontSize, CONTENT_WIDTH - labelW, CONTENT_WIDTH - labelW)
+    lines.forEach((line) => {
+      this.ensurePage(lh)
+      this.page.drawText(line, { x: x + labelW, y: this.y, size: fontSize, font: this.font, color: c })
+      this.y -= lh
+    })
+  }
+
+  /** Height a drawLabeledLine call would occupy, without drawing */
+  measureLabeledLine(label: string, text: string, fontSize: number): number {
+    const labelText = cleanInline(label)
+    const labelW = this.boldFont.widthOfTextAtSize(`${labelText} `, fontSize)
+    return wrapText(cleanInline(text), this.font, fontSize, CONTENT_WIDTH - labelW, CONTENT_WIDTH - labelW).length * fontSize * LINE_HEIGHT_RATIO
+  }
+
+  /** Heading line: left text at the margin, right text right-aligned on the same baseline */
+  drawColumns(left: string, right: string, fontSize: number, opts: { leftFont?: PDFFont, rightFont?: PDFFont, color?: RGB, gap?: number } = {}) {
+    const leftFont = opts.leftFont ?? this.font
+    const rightFont = opts.rightFont ?? this.font
+    const gap = opts.gap ?? 12
+    const lw = leftFont.widthOfTextAtSize(left, fontSize)
+    const rw = rightFont.widthOfTextAtSize(right, fontSize)
+    if (lw + gap + rw <= CONTENT_WIDTH) {
+      const lh = fontSize * LINE_HEIGHT_RATIO
+      this.ensurePage(lh)
+      this.page.drawText(left, { x: MARGIN, y: this.y, size: fontSize, font: leftFont, color: opts.color ?? BLACK })
+      this.page.drawText(right, { x: PAGE_WIDTH - MARGIN - rw, y: this.y, size: fontSize, font: rightFont, color: BLACK })
+      this.y -= lh
+    }
+    else {
+      this.drawLine(left, fontSize, { font: leftFont, color: opts.color })
+      this.drawLine(right, fontSize, { font: rightFont })
+    }
+  }
+
+  /** Height a drawColumns call would occupy, without drawing */
+  measureColumns(left: string, right: string, fontSize: number, opts: { leftFont?: PDFFont, rightFont?: PDFFont, gap?: number } = {}): number {
+    const leftFont = opts.leftFont ?? this.font
+    const rightFont = opts.rightFont ?? this.font
+    const gap = opts.gap ?? 12
+    const lw = leftFont.widthOfTextAtSize(left, fontSize)
+    const rw = rightFont.widthOfTextAtSize(right, fontSize)
+    if (lw + gap + rw <= CONTENT_WIDTH) return fontSize * LINE_HEIGHT_RATIO
+    return this.measureLine(left, fontSize, { font: leftFont }) + this.measureLine(right, fontSize, { font: rightFont })
+  }
+
+  /** Centered contact line of segments; segments with a `url` become hyperlinks (underlined) */
+  drawCenteredSegments(segments: CenteredSegment[], fontSize: number, opts: DrawCenteredSegmentsOptions = {}) {
+    const sep = opts.separator ?? ' | '
+    const gap = opts.gap ?? 6
+    const sepWidth = this.font.widthOfTextAtSize(sep, fontSize)
+    let total = 0
+    segments.forEach((s, i) => {
+      const f = s.font ?? opts.font ?? this.font
+      total += f.widthOfTextAtSize(s.text, fontSize)
+      if (i < segments.length - 1) total += sepWidth + gap
+    })
+    const baseline = this.y
+    this.ensurePage(fontSize * LINE_HEIGHT_RATIO)
+    let x = (PAGE_WIDTH - total) / 2
+    segments.forEach((s) => {
+      const f = s.font ?? opts.font ?? this.font
+      const c = s.color ?? opts.color ?? BLACK
+      const w = f.widthOfTextAtSize(s.text, fontSize)
+      this.page.drawText(s.text, { x, y: baseline, size: fontSize, font: f, color: c })
+      if (s.url) {
+        this.addLink(s.url, x, baseline - fontSize * 0.6, w, fontSize * 1.4)
+        if (opts.underlineLinks !== false)
+          this.page.drawLine({ start: { x, y: baseline - 1.5 }, end: { x: x + w, y: baseline - 1.5 }, thickness: 0.5, color: c })
+      }
+      x += w + sepWidth + gap
+    })
+    this.y = baseline - fontSize * LINE_HEIGHT_RATIO
   }
 }

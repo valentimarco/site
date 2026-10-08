@@ -1,8 +1,4 @@
 categories:
-  - name: Languages
-    items:
-      - 🇮🇹 Italian (Native)
-      - 🇬🇧 English (B2)
   - name: Programming Languages
     items:
       - Rust
@@ -11,51 +7,53 @@ categories:
       - C#
       - Python
       - TypeScript
-      - HTML5
-      - CSS3
   - name: Frontend Technologies
     items:
       - Vue 3
       - Nuxt 4
       - Tailwind CSS 4
-  - name: Backend Technologies
+      - HTML5
+      - CSS3
+  - name: Backend & Databases
     items:
+      - Spring Boot
+      - Axum
+      - Echo
       - PostgreSQL
       - MySQL
       - Redis
       - MongoDB
-      - Axum
-      - Echo
-      - Spring Boot
-      - CUDA
-      - OpenGL
       - GraphQL
       - gRPC
       - REST
-      - Flex/Bison
-      - SPARQL
-      - RDF Graphs
-      - KeyCloak
-      - Authelia
-      - OpenVR
-  - name: AI Technologies
+  - name: AI & Machine Learning
     items:
       - Langchain
       - scikit-learn
       - Qdrant
       - Llama.cpp
       - vllm
-  - name: Security & DevOps
+  - name: DevOps & Security
     items:
       - Docker
       - Kubernetes
-      - Cloudflare DNS
-      - Cloudflare ZeroTrust
       - GitHub Actions
+      - KeyCloak
+      - Authelia
+      - Cloudflare ZeroTrust
+      - Cloudflare DNS
   - name: Cloud
     items:
-      - Digital Ocean Depots
-      - AWS Ec2
+      - AWS EC2
+      - DigitalOcean
+  - name: Specialized
+    items:
+      - CUDA
+      - OpenGL
+      - OpenVR
+      - Flex/Bison
+      - SPARQL
+      - RDF Graphs
   - name: Tools
     items:
       - Git
@@ -67,3 +65,7 @@ categories:
       - ESLint
       - Nvim
       - Zed
+  - name: Languages
+    items:
+      - 🇮🇹 Italian (Native)
+      - 🇬🇧 English (B2)
