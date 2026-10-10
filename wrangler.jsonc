@@ -12,6 +12,16 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"routes": [
+		{
+			"pattern": "valentimarco.it/*",
+			"zone_name": "valentimarco.it"
+		},
+		{
+			"pattern": "www.valentimarco.it/*",
+			"zone_name": "valentimarco.it"
+		}
+	],
 	"d1_databases": [
 		{
 			"binding": "DB",
