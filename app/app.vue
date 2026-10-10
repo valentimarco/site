@@ -16,8 +16,8 @@ useHead({
   link: [
     {
       rel: 'icon',
-      type: 'image/jpeg',
-      href: '/me_jojo.jpeg',
+      type: 'image/png',
+      href: '/favicon.png',
     },
   ],
 })
