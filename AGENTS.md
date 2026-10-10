@@ -103,6 +103,11 @@ Conventions:
 - `/api/github` is **not** a routeRule: `server/api/github.ts` caches its payload in the Nitro `cache`
   storage, which is bound to Workers KV (`CACHE` in `wrangler.jsonc`) so it survives isolate cold
   starts. Degraded (`source: 'fallback'`) payloads are never written; the key is constant per deploy.
+- **Route-rule HTML caches persist in KV across deploys** (the key is request-based, not build-based),
+  so right after `wrangler deploy` a cached `/`, `/blog` or post can keep serving the previous build's
+  HTML — which references chunk hashes the new deploy removed — until `maxAge` elapses. If you need the
+  new build immediately, purge them:
+  `wrangler kv key list --namespace-id <CACHE id> --remote` then delete the `nitro:routes:*` keys.
 - Client-side: `useGitHub` resolves `/api/github` **after hydration** (`server: false`) so the homepage
   never blocks on GitHub; the sections and profile stats render once it resolves. There is no
   localStorage cache — a synchronous cached read during hydration desyncs the DOM from the SSR HTML.
