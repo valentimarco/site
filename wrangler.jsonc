@@ -13,14 +13,30 @@
 		"nodejs_compat"
 	],
 	"routes": [
-		{
-			"pattern": "valentimarco.it/*",
-			"zone_name": "valentimarco.it"
-		},
-		{
-			"pattern": "www.valentimarco.it/*",
-			"zone_name": "valentimarco.it"
-		}
+		{ "pattern": "valentimarco.it/", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/blog*", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/api/*", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/_*", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/favicon.png", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/favicon.ico", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/me.webp", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/me-avatar.webp", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/me_jojo.webp", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/og-image.png", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/robots.txt", "zone_name": "valentimarco.it" },
+		{ "pattern": "valentimarco.it/sitemap.xml", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/blog*", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/api/*", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/_*", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/favicon.png", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/favicon.ico", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/me.webp", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/me-avatar.webp", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/me_jojo.webp", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/og-image.png", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/robots.txt", "zone_name": "valentimarco.it" },
+		{ "pattern": "www.valentimarco.it/sitemap.xml", "zone_name": "valentimarco.it" }
 	],
 	"d1_databases": [
 		{
