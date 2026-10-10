@@ -50,7 +50,6 @@ app/                      # Nuxt frontend (srcDir = app/)
     blog/[slug].vue       # Blog post reader
   utils/
     consts.ts             # Re-exports Zod-derived types from #shared
-    helpers.ts            # getCachedData / setCachedData (1h localStorage cache)
 content/                  # Nuxt Content collections (markdown + yml) — see "Content authoring"
 server/
   api/
@@ -104,7 +103,9 @@ Conventions:
 - `/api/github` is **not** a routeRule: `server/api/github.ts` caches its payload in the Nitro `cache`
   storage, which is bound to Workers KV (`CACHE` in `wrangler.jsonc`) so it survives isolate cold
   starts. Degraded (`source: 'fallback'`) payloads are never written; the key is constant per deploy.
-- Client-side: `useGitHub` caches API responses in `localStorage` under `cache:<key>` for 1 h (`helpers.ts` `CACHE_TTL`), and prefers SSR payload data. `fetchedAt` is stamped by `setCachedData`.
+- Client-side: `useGitHub` resolves `/api/github` **after hydration** (`server: false`) so the homepage
+  never blocks on GitHub; the sections and profile stats render once it resolves. There is no
+  localStorage cache — a synchronous cached read during hydration desyncs the DOM from the SSR HTML.
 
 ### GitHub data flow
 

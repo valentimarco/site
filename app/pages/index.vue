@@ -5,9 +5,22 @@ const {
   skillsContent, experiencesContent, educationContent, certificationsContent,
 } = await useContent()
 
-const { profile, repos, contributions } = await useGitHub({ name, email, location })
+const { profile, repos, contributions, status } = await useGitHub({ name, email, location })
 
 const showAllProjects = ref(false)
+
+// Only show the loading placeholder after mount: `status` is not "pending" during SSR hydration, so
+// rendering it earlier would differ from the server HTML and trip a hydration mismatch.
+const mounted = ref(false)
+onMounted(() => {
+  mounted.value = true
+})
+
+// `profile` is client-fetched; the cached value can resolve synchronously, so keep the pre-mount
+// render identical to SSR (current year) to avoid a hydration mismatch.
+const startYear = computed(() => mounted.value
+  ? new Date(profile.value.created_at).getFullYear()
+  : new Date().getFullYear())
 
 function showMore() {
   showAllProjects.value = true
@@ -48,7 +61,7 @@ useHead({
               <h2 class="text-base md:text-lg font-medium print:text-base">
                 {{ jobTitle }}
               </h2>
-              <div v-if="profile.followers > 0 || profile.following > 0"
+              <div v-if="mounted && (profile.followers > 0 || profile.following > 0)"
                    class="flex flex-wrap items-center print:hidden gap-2 text-sm">
                 <UIcon name="i-hugeicons-user-group" class="size-5" />
                 <p><strong>{{ profile.followers }}</strong> followers</p>
@@ -101,7 +114,13 @@ useHead({
         </template>
         <ExperienceSection v-for="experience in experiencesContent" :key="experience.stem" :experience />
       </UCard>
-      <UCard v-if="repos.list.length > 0" as="section" variant="subtle" class="print:hidden"
+      <UCard v-if="mounted && status === 'pending'" variant="subtle" class="print:hidden">
+        <div class="flex items-center justify-center gap-3 py-6 text-sm text-muted">
+          <span class="size-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+          <span>Loading GitHub stats…</span>
+        </div>
+      </UCard>
+      <UCard v-if="mounted && repos.list.length > 0" as="section" variant="subtle" class="print:hidden"
              :ui="{ body: 'space-y-4' }">
         <template #header>
           <h3 class="text-xl md:text-2xl font-bold text-highlighted leading-loose">
@@ -109,7 +128,7 @@ useHead({
           </h3>
         </template>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <ProjectSection v-for="repo in visibleProjects" :key="repo.name" :repo />
+          <LazyProjectSection v-for="repo in visibleProjects" :key="repo.name" :repo />
         </div>
         <div v-if="repos.list.length > 6" class="flex justify-center gap-4">
           <UButton v-if="!showAllProjects" variant="subtle" color="neutral" icon="i-hugeicons-arrow-down-01"
@@ -121,7 +140,7 @@ useHead({
                    external />
         </div>
       </UCard>
-      <UCard v-if="contributions.list.length > 0" as="section" variant="subtle" class="print:hidden"
+      <UCard v-if="mounted && contributions.list.length > 0" as="section" variant="subtle" class="print:hidden"
              :ui="{ body: 'grid grid-cols-1 md:grid-cols-2 gap-4' }">
         <template #header>
           <h3 class="text-xl md:text-2xl font-bold text-highlighted leading-loose">
@@ -129,7 +148,7 @@ useHead({
           </h3>
         </template>
         <SpecialCard v-for="(contribution, index) in contributions.list" :key="index">
-          <ContributionSection :contribution />
+          <LazyContributionSection :contribution />
         </SpecialCard>
       </UCard>
       <UCard v-if="skillsContent?.categories" as="section" variant="subtle" class="print:bg-transparent"
@@ -167,7 +186,7 @@ useHead({
         </SpecialCard>
       </UCard>
       <p class="text-muted print:hidden text-sm text-center">
-        Copyright © {{ new Date(profile.created_at).getFullYear() }} - {{ new Date().getFullYear() }} by {{ username
+        Copyright © {{ startYear }} - {{ new Date().getFullYear() }} by {{ username
         }}
       </p>
       <p class="text-muted print:hidden text-xs text-center">

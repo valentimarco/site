@@ -28,16 +28,16 @@ interface GitHubData {
 export async function useGitHub(options: UseGitHubOptions) {
   const { name, email, location } = options
 
-  const { data } = await useFetch<GitHubData>('/api/github', {
+  const { data, status } = await useFetch<GitHubData>('/api/github', {
     key: 'github',
-    getCachedData,
-    transform: (res) => {
-      // Store local cache like the original implementation for offline support
-      setCachedData('profile', res.profile)
-      setCachedData('repos', res.repos)
-      setCachedData('contributions', res.contributions)
-      return res
-    },
+    // This data only backs below-the-fold sections (projects, contributions) and a couple of profile
+    // stats. Fetching it during SSR made the whole homepage wait on GitHub; resolve it on the client
+    // after hydration instead, so first paint never depends on the API. No localStorage read here on
+    // purpose: injecting a cached value synchronously during hydration desyncs the DOM from the SSR
+    // HTML (Vue then reports a hydration mismatch). The endpoint itself is edge/KV-cached, so the
+    // post-mount fetch is quick.
+    server: false,
+    lazy: true,
     default: () => ({
       profile: {
         name,
@@ -60,6 +60,7 @@ export async function useGitHub(options: UseGitHubOptions) {
   })
 
   return {
+    status,
     profile: computed(() => data.value?.profile || {
       name,
       email,
