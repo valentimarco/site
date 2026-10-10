@@ -1,23 +1,6 @@
 import { z } from 'zod'
 
 // ============================================================
-// INPUT SCHEMAS
-// ============================================================
-
-export const gitHubQuerySchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  name: z.string().optional(),
-  email: z.string().optional(),
-  location: z.string().optional(),
-  projectSlugs: z.union([z.string(), z.array(z.string())]).optional().transform((val) => {
-    if (!val) return []
-    return Array.isArray(val) ? val : [val]
-  }),
-})
-
-export type GitHubQueryInput = z.infer<typeof gitHubQuerySchema>
-
-// ============================================================
 // OUTPUT SCHEMAS
 // ============================================================
 

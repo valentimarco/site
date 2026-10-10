@@ -25,8 +25,11 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig(event)
   const octokit = new Octokit({ auth: config.githubToken || undefined })
-  const contributions = await fetchContributions(profile.username || '', octokit)
-  const projectItems = await fetchProjects(profile.username || '', projects?.repos || [], octokit)
+  // Prefer the server-configured account; fall back to the content profile so the CV still
+  // renders GitHub data if `GITHUB_USERNAME` is unset locally.
+  const githubUsername = config.githubUsername || profile.username || ''
+  const contributions = await fetchContributions(githubUsername, octokit)
+  const projectItems = await fetchProjects(githubUsername, projects?.repos || [], octokit)
 
   const pdfDoc = await PDFDocument.create()
   pdfDoc.registerFontkit(fontkit)

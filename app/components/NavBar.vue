@@ -70,6 +70,7 @@ async function downloadPdf() {
         <!-- Desktop: name text -->
         <NuxtLink
           to="/"
+          prefetch-on="interaction"
           class="justify-self-start hidden md:block text-sm font-semibold text-highlighted hover:text-primary transition-colors"
         >
           Marco Valenti
@@ -77,7 +78,7 @@ async function downloadPdf() {
         <!-- Mobile: avatar with popover -->
         <UPopover mode="click" class="justify-self-start md:hidden">
           <button class="cursor-pointer rounded-full">
-            <UAvatar src="/me.png" alt="Marco Valenti" size="sm" />
+            <UAvatar src="/me-avatar.webp" alt="Marco Valenti" size="sm" />
           </button>
           <template #content>
             <div class="p-3 space-y-1">
@@ -95,6 +96,7 @@ async function downloadPdf() {
             v-for="link in links"
             :key="link.to"
             :to="link.to"
+            prefetch-on="interaction"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors"
             :class="isActive(link)
               ? 'bg-primary/10 text-primary font-medium'

@@ -1,11 +1,11 @@
 import type { ContributionSummary, GitHubRepository } from '~/utils/consts'
 
+// Display-only fallbacks. The endpoint takes no client input — the account it queries is
+// server-configured via `GITHUB_USERNAME`.
 interface UseGitHubOptions {
-  username: string
   name: string
   email: string
   location: string
-  projectSlugs: string[]
 }
 
 interface GitHubProfileData {
@@ -26,14 +26,10 @@ interface GitHubData {
 }
 
 export async function useGitHub(options: UseGitHubOptions) {
-  const { username, name, email, location, projectSlugs } = options
+  const { name, email, location } = options
 
   const { data } = await useFetch<GitHubData>('/api/github', {
-    query: {
-      username,
-      projectSlugs,
-    },
-    key: `github:${username}`,
+    key: 'github',
     getCachedData,
     transform: (res) => {
       // Store local cache like the original implementation for offline support

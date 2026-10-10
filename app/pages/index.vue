@@ -3,10 +3,9 @@ const {
   profileContent, name, location, email, username,
   jobTitle, socials, age,
   skillsContent, experiencesContent, educationContent, certificationsContent,
-  projectSlugs,
 } = await useContent()
 
-const { profile, repos, contributions } = await useGitHub({ username, name, email, location, projectSlugs })
+const { profile, repos, contributions } = await useGitHub({ name, email, location })
 
 const showAllProjects = ref(false)
 
@@ -75,9 +74,9 @@ useHead({
               </div>
             </div>
             <div class="shrink-0">
-              <ImageSpotlight baseImage="/me_jojo.jpeg" spotlightImage="/me.png" :alt="name"
+              <ImageSpotlight baseImage="/me_jojo.jpeg" spotlightImage="/me.webp" :alt="name"
                               class="size-30 md:size-40 rounded-full object-cover" />
-              <p class="text-sm text-center select-none print:hidden text-muted italic">
+              <p aria-hidden="true" class="text-sm text-center select-none print:hidden text-muted italic">
                 Hover me!
               </p>
             </div>

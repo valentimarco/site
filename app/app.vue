@@ -1,4 +1,9 @@
 <script setup lang="ts">
+// Imported here (not via `nuxt.config.css`) so Nuxt inlines the compiled Tailwind styles into the
+// SSR HTML; combined with `vitalizer.disableStylesheets: 'entry'` this removes the render-blocking
+// `entry.<hash>.css` request from the critical path.
+import '~/assets/css/main.css'
+
 const {
   name,
   description, ogImage,

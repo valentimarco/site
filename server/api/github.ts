@@ -7,47 +7,63 @@ type ProfileData = GitHubProfileType
 type RepoData = GitHubRepositoryType
 type ContributionSummaryData = ContributionSummaryType
 
-const handler = defineEventHandler(async (event) => {
-  // 1. Validate Input (Query)
-  const rawQuery = getQuery(event)
-  const validation = gitHubQuerySchema.safeParse(rawQuery)
-
-  if (!validation.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: `Validation failed: ${validation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
-    })
+function emptyResponse(profile: ProfileData) {
+  return {
+    profile,
+    repos: { list: [] as RepoData[] },
+    contributions: { list: [] as ContributionSummaryData[] },
   }
+}
 
-  const { username, projectSlugs } = validation.data
+const handler = defineEventHandler(async (event) => {
+  const config = useRuntimeConfig(event)
 
-  // Resolve identity from content instead of client query params (PII stays out of URLs/logs)
+  // Resolve identity and project slugs from content, never from client query params. The endpoint
+  // is a fixed proxy for a single account configured via `GITHUB_USERNAME`, so a bot cannot choose
+  // an arbitrary username (token/rate-limit abuse) or amplify a request with arbitrary repo slugs.
   let profileFallback: Pick<ProfileData, 'name' | 'email' | 'location'> = {}
+  let profileUsername = ''
+  let projectSlugs: string[] = []
   try {
-    const profileContent = await queryCollection(event, 'profile').first()
+    const [profileContent, projectsContent] = await Promise.all([
+      queryCollection(event, 'profile').first(),
+      queryCollection(event, 'projects').first(),
+    ])
     profileFallback = {
       name: profileContent?.name,
       email: profileContent?.email,
       location: profileContent?.location,
     }
+    profileUsername = profileContent?.username || ''
+    projectSlugs = projectsContent?.repos || []
   }
   catch (error) {
-    console.warn('[api/github] failed to load profile content, continuing with empty fallback', error)
+    console.warn('[api/github] failed to load content, continuing with empty fallback', error)
   }
 
-  const config = useRuntimeConfig(event)
-  const octokit = new Octokit({
-    auth: config.githubToken || undefined,
-  })
-
-  // 2. Fetch Profile
-  let profileData: ProfileData = {
+  const fallbackProfile: ProfileData = {
     source: 'fallback',
     ...profileFallback,
     created_at: new Date().toISOString(),
     followers: 0,
     following: 0,
   }
+
+  // Prefer the server-configured account; fall back to the content profile so the endpoint keeps
+  // working when `GITHUB_USERNAME` is unset (e.g. a fresh local build). Either way the username is
+  // resolved server-side — never from client input.
+  const username = config.githubUsername || profileUsername
+  if (!username) {
+    console.warn('[api/github] no GitHub username configured (GITHUB_USERNAME or profile.username); serving fallback')
+    return emptyResponse(fallbackProfile)
+  }
+
+  const octokit = new Octokit({
+    auth: config.githubToken || undefined,
+  })
+
+  // 2. Fetch Profile
+  let profileData: ProfileData = fallbackProfile
   try {
     const res = await octokit.rest.users.getByUsername({ username })
     profileData = {
@@ -206,18 +222,8 @@ function isDegraded(payload: GitHubApiResponse) {
 }
 
 export default defineEventHandler(async (event) => {
-  const rawQuery = getQuery(event)
-  const validation = gitHubQuerySchema.safeParse(rawQuery)
-  if (!validation.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: `Validation failed: ${validation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
-    })
-  }
-
-  // Normalised so `?a=1&b=2` and `?b=2&a=1` share one entry.
-  const { username, projectSlugs } = validation.data
-  const cacheKey = `github:${username}:${[...projectSlugs].sort().join(',')}`
+  // No client input: there is exactly one cache entry per deployment.
+  const cacheKey = `github:${useRuntimeConfig(event).githubUsername || 'unset'}`
   const storage = useStorage('cache')
 
   const cached = await storage.getItem<GitHubApiResponse>(cacheKey)

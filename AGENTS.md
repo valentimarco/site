@@ -61,7 +61,7 @@ server/
     cv-pdf.ts             # CvLayout: manual PDF layout engine
     cv-github.ts          # fetchContributions: merged PR search + repo enrichment
 shared/
-  types/schemas.ts        # Zod schemas for /api/github (input + output), auto-imported as #shared
+  types/schemas.ts        # Zod schemas for /api/github (output only), auto-imported as #shared
 docs/
   review.md               # 2026-07-31 security + architecture review (findings, mostly resolved)
 public/                   # Static assets (images, _robots.txt)
@@ -106,8 +106,8 @@ Conventions:
 
 ### GitHub data flow
 
-1. `useGitHub` (client) → `GET /api/github?username&projectSlugs[]` (name/email/location are **not** sent; the server resolves them from the `profile` collection)
-2. `server/api/github.ts` validates query with `gitHubQuerySchema`, calls Octokit for profile, project repos, and merged PRs (`author:<username> is:pr is:merged`), dedupes by repo, enriches top repos with stars and each project repo with `languages` (sorted by byte count). Profile data carries a `source: 'github' | 'fallback'` flag. All Octokit calls use `runtimeConfig.githubToken`; per-repo language failures degrade to `[]` rather than dropping the repo.
+1. `useGitHub` (client) → `GET /api/github` with **no query parameters**. The account is server-configured (`runtimeConfig.githubUsername` ← `GITHUB_USERNAME`) and the project slugs are read from the `projects` collection, so callers cannot point the endpoint (and the server token) at arbitrary accounts or amplify a request with arbitrary repo slugs. Identity/display fields (`name`, `email`, `location`) are passed to `useGitHub` only as offline fallbacks.
+2. `server/api/github.ts` resolves `githubUsername` and `projectSlugs` server-side, then calls Octokit for profile, project repos, and merged PRs (`author:<username> is:pr is:merged`), dedupes by repo, enriches top repos with stars and each project repo with `languages` (sorted by byte count). Profile data carries a `source: 'github' | 'fallback'` flag. All Octokit calls use `runtimeConfig.githubToken`; per-repo language failures degrade to `[]` rather than dropping the repo. If `GITHUB_USERNAME` is unset it logs a warning and returns the fallback payload without calling GitHub. The cache key is constant (`github:<username>`).
 3. Output validated against `gitHubApiResponseSchema` (shared/types/schemas.ts). On mismatch it logs a warning and returns raw data — the client is lenient.
 4. Endpoint degrades gracefully: any GitHub failure logs a warning and returns fallback data (empty lists / zeroed profile), so the site never breaks.
 
@@ -118,6 +118,7 @@ Conventions:
 ### Runtime config
 
 - `runtimeConfig.githubToken` ← `process.env.GITHUB_TOKEN` (server-only). Local: `.env` (see `.env.example`). Cloudflare: `wrangler secret put GITHUB_TOKEN` (or `.dev.vars` locally, see `.dev.vars.example`).
+- `runtimeConfig.githubUsername` ← `process.env.GITHUB_USERNAME` (server-only). The single account `/api/github` and the CV PDF query; there is no client input. Local: `.env` (see `.env.example`). Cloudflare: `wrangler secret put GITHUB_USERNAME` (or `.dev.vars` locally, see `.dev.vars.example`).
 - `runtimeConfig.public.version` ← `package.json` version (shown in footer).
 
 ## Cloudflare / Deployment
@@ -144,5 +145,7 @@ Conventions:
 - **`@nuxtjs/seo` module: `schemaOrg` and `sitemap` are enabled; `ogImage` generation is disabled** — the site ships a static og image from `profile.md` via `useSeoMeta` instead. Re-enable `ogImage` deliberately if needed.
 - **`@compodium/nuxt` is gated to development** (`process.env.NODE_ENV === 'development'`) — a beta module that should not run in production builds.
 - **`GITHUB_TOKEN` unset in prod** → GitHub API runs unauthenticated (60 req/h limit). Edge caching on `/api/github` and `/api/cv-pdf` + client caching mitigates this. Set it with `wrangler secret put GITHUB_TOKEN`.
-- Local `.env` / `.dev.vars` hold `GITHUB_TOKEN` (gitignored). Never commit them.
+- **`GITHUB_USERNAME` unset** → `/api/github` falls back to the `profile` collection's `username` (still server-side, never client input), so it keeps working on a fresh build; it only serves the empty fallback if neither is set. The CV PDF likewise falls back to the content profile. Set it with `wrangler secret put GITHUB_USERNAME` to pin the account explicitly.
+- **Never let Vue be bundled twice in the server build.** `vue` is pinned in `package.json` (`^3.5.40`) so `nuxt` / `@nuxt/nitro-server` dedupe to the root copy. If the tree ends up with several Vue copies (e.g. a stale lockfile or a leftover pnpm `node_modules`), Cloudflare SSR throws `Cannot read properties of null (reading 'ce')` on every page: Vue runtime-core state is split across chunks, so Reka UI's `ConfigProvider` calls `renderSlot` with a null current instance. Keep `node_modules` a clean Bun install and `vue` aligned with Nuxt's requirement.
+- Local `.env` / `.dev.vars` hold `GITHUB_TOKEN` and `GITHUB_USERNAME` (gitignored). Never commit them.
 - Uncommitted at times: new blog posts land as untracked files until committed.

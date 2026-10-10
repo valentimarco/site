@@ -25,6 +25,16 @@ export default defineNuxtConfig({
         '@vue/devtools-kit',
       ],
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // The app is a single, statically-imported page + a blog. Nuxt/Vite otherwise emits a
+          // separate tiny chunk (and a matching `modulepreload`) per component, which turns the
+          // first paint into ~57 request waves on throttled connections. Merge them back together.
+          experimentalMinChunkSize: 60_000,
+        },
+      },
+    },
   },
 
   ssr: true,
@@ -41,6 +51,9 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     githubToken: process.env.GITHUB_TOKEN || '',
+    // Server-only: /api/github takes no client input and always queries this account.
+    // Set via `wrangler secret put GITHUB_USERNAME` (or a Worker var) in production.
+    githubUsername: process.env.GITHUB_USERNAME || '',
     public: {
       version,
     },
@@ -67,6 +80,12 @@ export default defineNuxtConfig({
 
   colorMode: {
     disableTransition: false,
+  },
+
+  // Styles are already inlined into the SSR HTML; the standalone `entry.<hash>.css` <link> only
+  // duplicates them and render-blocks first paint, so drop it (Lighthouse LCP/FCP).
+  vitalizer: {
+    disableStylesheets: 'entry',
   },
 
   routeRules: {

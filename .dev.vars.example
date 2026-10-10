@@ -1,0 +1,5 @@
+# Local secrets for `wrangler dev` (the production preview: `bun run preview`).
+# Copy to `.dev.vars` (gitignored). In dev, `nuxt dev` reads `.env` instead.
+# In production, set these as Worker secrets: `wrangler secret put <NAME>`.
+GITHUB_TOKEN=
+GITHUB_USERNAME=
