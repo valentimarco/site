@@ -44,14 +44,6 @@ export async function useContent() {
     { server: true },
   )
 
-  const { data: projectsContent } = await useAsyncData(
-    'projects-content',
-    () => queryCollection('projects').first(),
-    { server: true },
-  )
-
-  const projectSlugs = projectsContent.value?.repos || []
-
   return {
     profileContent,
     name,
@@ -67,6 +59,5 @@ export async function useContent() {
     experiencesContent,
     educationContent,
     certificationsContent,
-    projectSlugs,
   }
 }

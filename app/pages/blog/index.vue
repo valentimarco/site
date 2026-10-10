@@ -2,7 +2,6 @@
 const { data: posts } = await useAsyncData(
   'blog-posts',
   () => queryCollection('blog')
-    // .where('draft', '!=', true)
     .order('date', 'DESC')
     .all(),
   { server: true },
@@ -15,12 +14,15 @@ function formatDate(dateStr: string) {
 
 const search = ref('')
 
+// Drafts are excluded from the listing (see AGENTS.md). Filtered in JS rather than the query: the
+// typed `queryCollection().where()` accepts SQL operators only, and `!=` is not one of them.
+const publishedPosts = computed(() => (posts.value ?? []).filter(post => post.draft !== true))
+
 const filteredPosts = computed(() => {
-  if (!posts.value) return []
-  if (!search.value.trim()) return posts.value
+  if (!search.value.trim()) return publishedPosts.value
 
   const q = search.value.toLowerCase()
-  return posts.value.filter(post =>
+  return publishedPosts.value.filter(post =>
     post.title.toLowerCase().includes(q)
     || post.description?.toLowerCase().includes(q)
     || post.tags?.some(tag => tag.toLowerCase().includes(q)),
@@ -146,7 +148,7 @@ useHead({
         </UCard>
       </div>
 
-      <div v-else-if="!posts?.length" class="text-center py-12">
+      <div v-else-if="!publishedPosts.length" class="text-center py-12">
         <UIcon name="i-hugeicons-news" class="size-12 mx-auto text-muted mb-4" />
         <p class="text-lg text-muted">
           No posts yet. Stay tuned!

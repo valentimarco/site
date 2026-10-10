@@ -18,5 +18,11 @@
 			"database_name": "portfolio-db",
 			"database_id": "fcaf287c-41ba-4cf9-af4f-240278e0cdab"
 		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "CACHE",
+			"id": "525d90c6f8744eb5a2742b0809d62c81"
+		}
 	]
 }

@@ -25,16 +25,9 @@ export default defineNuxtConfig({
         '@vue/devtools-kit',
       ],
     },
-    build: {
-      rollupOptions: {
-        output: {
-          // The app is a single, statically-imported page + a blog. Nuxt/Vite otherwise emits a
-          // separate tiny chunk (and a matching `modulepreload`) per component, which turns the
-          // first paint into ~57 request waves on throttled connections. Merge them back together.
-          experimentalMinChunkSize: 60_000,
-        },
-      },
-    },
+    // NOTE: `build.rollupOptions.output.experimentalMinChunkSize` was tried here and had no effect —
+    // the ~57 first-paint `modulepreload`s are async (lazily imported) UI/reka chunks that Rollup
+    // will not merge. Cutting first-paint JS needs component-level lazy loading, not a size threshold.
   },
 
   ssr: true,
@@ -78,6 +71,15 @@ export default defineNuxtConfig({
   },
   site: { url: 'valentimarco.it' },
 
+  // @nuxt/fonts does not preload subsetted (unicode-range) fonts by default, so the body-text LCP
+  // waited for Space Grotesk to be discovered only after the inlined CSS parsed. Restrict to the
+  // latin subset and preload it: one file, started with the document instead of ~500ms later.
+  fonts: {
+    families: [
+      { name: 'Space Grotesk', preload: true, subsets: ['latin'] },
+    ],
+  },
+
   colorMode: {
     disableTransition: false,
   },
@@ -99,10 +101,10 @@ export default defineNuxtConfig({
         maxAge: 3600, // 1 hour for individual posts
       },
     },
-    // Caching for /api/github is defined in server/api/github.ts via defineCachedEventHandler,
-    // not here: a plain routeRule cache cannot tell a healthy response from a degraded one, so a
-    // single GitHub failure (bad token, rate limit, network blip) would pin an empty
-    // `source: 'fallback'` payload at the edge for the full maxAge.
+    // /api/github is intentionally NOT cached here: a plain routeRule cache cannot tell a healthy
+    // response from a degraded one, so a single GitHub failure (bad token, rate limit, network blip)
+    // would pin an empty `source: 'fallback'` payload at the edge. server/api/github.ts instead
+    // caches healthy payloads in the KV-backed Nitro `cache` storage (see `nitro.storage` below).
     '/api/cv-pdf': {
       // Set NUXT_CV_PDF_DISABLE_CACHE=1 (e.g. in local .env) to bypass the edge cache while iterating on the PDF
       cache: ['1', 'true', 'yes', 'on'].includes((process.env.NUXT_CV_PDF_DISABLE_CACHE || '').toLowerCase())
@@ -114,6 +116,16 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare_module',
     tracingChannel: true,
+
+    // Persist the Nitro `cache` storage in Workers KV so values survive isolate cold starts. The
+    // default driver is in-memory (per isolate), so a fresh isolate re-ran the whole Octokit chain
+    // inline in SSR (~3.6s TTFB on `/`). `CACHE` is bound in wrangler.jsonc.
+    storage: {
+      cache: {
+        driver: 'cloudflare-kv-binding',
+        binding: 'CACHE',
+      },
+    },
 
     cloudflare: {
       deployConfig: true,
