@@ -49,6 +49,9 @@ export default defineNuxtConfig({
     githubUsername: process.env.GITHUB_USERNAME || '',
     public: {
       version,
+      // Evaluated once per build process: a build-scoped id used by /api/github to key its KV
+      // cache, so every deploy starts a fresh entry even without a version bump.
+      buildId: Date.now().toString(36),
     },
   },
 
@@ -94,7 +97,7 @@ export default defineNuxtConfig({
     // The homepage is the only page with a live SSR pass and no isolate-cached render, so a cold
     // isolate re-rendered it (~1.2 s TTFB) on every fresh isolate. Cache it like the blog routes:
     // the GitHub-backed API payload refreshes at most hourly (`/api/github` KV cache) and is
-    // invalidated on every deploy by the versioned cache key, so 5 min of HTML is fine. `swr`
+    // invalidated on every deploy by the build-scoped cache key, so 5 min of HTML is fine. `swr`
     // serves the stale copy instantly while revalidating.
     '/': {
       cache: {

@@ -104,10 +104,11 @@ Conventions:
   storage, which is bound to Workers KV (`CACHE` in `wrangler.jsonc`) so it survives isolate cold
   starts. Entries are wrapped as `{ fetchedAt, data }`: a fresh (≤1 h) healthy entry is served as-is,
   an older one triggers a live re-fetch. Degraded (`source: 'fallback'`) payloads are never written.
-  The cache key includes the deployed version (`github:<githubUsername || 'unset'>:<public.version>`,
-  from `package.json` via `runtimeConfig.public.version`) — content only ships with a deploy, so each
-  deploy starts a new key and a stale snapshot cannot survive one. When GitHub is unreachable, a
-  last-known-good entry (even older than 1 h) is served instead of the empty fallback.
+  The cache key is build-scoped (`github:<githubUsername || 'unset'>:<public.buildId>`; the build id
+  is evaluated once per build in `nuxt.config.ts`) — content only ships with a deploy, so every
+  deploy starts a new key and a stale snapshot cannot survive one. Old-scheme or orphaned entries
+  are simply abandoned (no TTL is set; the purge script does not touch them). When GitHub is
+  unreachable, a last-known-good entry (even older than 1 h) is served instead of the empty fallback.
 - **Route-rule HTML caches persist in KV across deploys** (the key is request-based, not build-based),
   so right after `wrangler deploy` a cached `/`, `/blog` or post can keep serving the previous build's
   HTML — which references chunk hashes the new deploy removed — until `maxAge` elapses. `bun run deploy`

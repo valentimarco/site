@@ -230,10 +230,12 @@ const CACHE_MAX_AGE_MS = 60 * 60 * 1000
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
-  // Keyed on the env-configured account and the deployed version. Content can only ship with a
-  // deploy, so every deploy starts a new cache key and a stale snapshot can never outlive (or
-  // mask content changes of) a build — no re-run of the handler can resurrect the old entry.
-  const cacheKey = `github:${config.githubUsername || 'unset'}:${config.public.version}`
+  // Keyed on the env-configured account and the build id (runtimeConfig.public.buildId, evaluated
+  // once per build in nuxt.config.ts). Content can only ship with a deploy, so every deploy —
+  // even one without a version bump — starts a new cache key: a stale snapshot can never outlive
+  // (or mask content changes of) a build.
+
+  const cacheKey = `github:${config.githubUsername || 'unset'}:${config.public.buildId}`
   const storage = useStorage('cache')
 
   const cached = await storage.getItem<CachedPayload>(cacheKey)
