@@ -151,7 +151,7 @@ Conventions:
 ## Gotchas / Known Issues
 
 - **`worker-configuration.d.ts` is gitignored** — it's a generated file (`wrangler types`). Regenerate locally with `bun run cf-typegen`; don't hand-edit.
-- **`certifications` collection has no source dir** (`content/certifications/` missing) — the Certifications section renders nothing until content is added.
+- **`certifications` content is placeholder** — `content/certifications/*.md` ships two `Example» placeholder certs (pointing at `/og-image.png`) so the section and the CV PDF render; replace them with real certs and logos under `public/certifications/`.
 - **`@nuxtjs/seo` module: `schemaOrg` and `sitemap` are enabled; `ogImage` generation is disabled** — the site ships a static og image from `profile.md` via `useSeoMeta` instead. Re-enable `ogImage` deliberately if needed.
 - **`@compodium/nuxt` is gated to development** (`process.env.NODE_ENV === 'development'`) — a beta module that should not run in production builds.
 - **`GITHUB_TOKEN` unset in prod** → GitHub API runs unauthenticated (60 req/h limit). Edge caching on `/api/github` and `/api/cv-pdf` + client caching mitigates this. Set it with `wrangler secret put GITHUB_TOKEN`.

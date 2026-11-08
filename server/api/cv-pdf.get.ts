@@ -6,8 +6,10 @@ import fontkit from '@pdf-lib/fontkit'
 import { PDFDocument } from 'pdf-lib'
 import { loadCvFonts } from '../utils/cv-fonts'
 import { fetchContributions, fetchProjects } from '../utils/cv-github'
-import { BOTTOM_MARGIN, CvLayout, FS_BODY, FS_H2, FS_HEADING, FS_SMALL, FS_TITLE, GRAY, LINE_HEIGHT_RATIO, PAGE_WIDTH } from '../utils/cv-pdf'
-import { computeAge, fmtDate, fmtRange, parseMinimarkBody } from '../utils/cv-text'
+import { BOTTOM_MARGIN, CONTENT_WIDTH, CvLayout, FS_BODY, FS_H2, FS_HEADING, FS_SMALL, FS_TITLE, GRAY, LINE_HEIGHT_RATIO, PAGE_WIDTH } from '../utils/cv-pdf'
+import { computeAge, fmtRange, parseMinimarkBody } from '../utils/cv-text'
+
+const PROTOCOL_RE = /^https?:\/\//
 
 export default defineEventHandler(async (event) => {
   const [profile, skills, experiences, education, certifications, projects, cvConfig] = await Promise.all([
@@ -57,7 +59,7 @@ export default defineEventHandler(async (event) => {
   }))
   const certItems = (certifications || []).map(c => ({
     ...c,
-    date: c.issueDate ? fmtDate(c.issueDate) : '',
+    year: c.issueDate ? String(new Date(c.issueDate).getFullYear()) : '',
   }))
 
   // ═══ HEADER ════════════════════════════════════════════
@@ -166,10 +168,18 @@ export default defineEventHandler(async (event) => {
     certifications() {
       if (!certItems.length) return
       layout.drawSectionTitle('Certifications')
+      const hang = font.widthOfTextAtSize('• ', FS_BODY)
       for (const item of certItems) {
-        const text = [item.title, item.issuer, item.date].filter(Boolean).join(' – ')
-        layout.keepTogether(layout.measureBullet(text, FS_BODY))
+        const text = [item.title, item.issuer, item.year].filter(Boolean).join(' – ')
+        const proof = item.url ? `Verifiable online: ${item.url.replace(PROTOCOL_RE, '')}` : ''
+        const proofH = proof ? layout.measureLine(proof, FS_SMALL, { maxWidth: CONTENT_WIDTH - hang }) + 1 : 0
+        layout.keepTogether(layout.measureBullet(text, FS_BODY) + proofH)
         layout.drawBullet(text, FS_BODY)
+        if (proof) {
+          layout.gap(1)
+          layout.drawLinkLine(proof, FS_SMALL, { color: GRAY, x: MARGIN + hang, url: item.url })
+        }
+        layout.gap(3)
       }
       layout.gap(2)
     },

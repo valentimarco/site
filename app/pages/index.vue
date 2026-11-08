@@ -175,15 +175,14 @@ useHead({
         <EducationSection v-for="experience in educationContent" :key="experience.stem" :experience />
       </UCard>
       <UCard v-if="certificationsContent && certificationsContent.length > 0" as="section" variant="subtle"
-             class="print:bg-transparent" :ui="{ body: 'grid grid-cols-2 gap-4' }">
+             class="print:bg-transparent" :ui="{ body: 'space-y-4' }">
         <template #header>
           <h3 class="text-xl md:text-2xl font-bold text-highlighted leading-loose">
             Certifications
           </h3>
         </template>
-        <SpecialCard v-for="certificate in certificationsContent" :key="certificate.stem">
-          <CertificationSection :certificate />
-        </SpecialCard>
+        <CertificationSection v-for="certificate in certificationsContent" :key="certificate.stem"
+                              :certificate />
       </UCard>
       <p class="text-muted print:hidden text-sm text-center">
         Copyright © {{ startYear }} - {{ new Date().getFullYear() }} by {{ username

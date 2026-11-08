@@ -66,6 +66,7 @@ export default defineContentConfig({
         title: z.string(),
         issuer: z.string(),
         issueDate: z.string(),
+        image: z.string(),
         url: z.string().optional(),
       }),
     }),
