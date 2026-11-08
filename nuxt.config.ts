@@ -91,10 +91,11 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    // The homepage is the only page with a live GitHub-backed SSR pass and no cache, so a cold
+    // The homepage is the only page with a live SSR pass and no isolate-cached render, so a cold
     // isolate re-rendered it (~1.2 s TTFB) on every fresh isolate. Cache it like the blog routes:
-    // the underlying GitHub data is already ≤1 h stale, so 5 min of HTML is fine. `swr` serves the
-    // stale copy instantly while revalidating.
+    // the GitHub-backed API payload refreshes at most hourly (`/api/github` KV cache) and is
+    // invalidated on every deploy by the versioned cache key, so 5 min of HTML is fine. `swr`
+    // serves the stale copy instantly while revalidating.
     '/': {
       cache: {
         maxAge: 300, // 5 min

@@ -27,9 +27,9 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig(event)
   const octokit = new Octokit({ auth: config.githubToken || undefined })
-  // Prefer the server-configured account; fall back to the content profile so the CV still
-  // renders GitHub data if `GITHUB_USERNAME` is unset locally.
-  const githubUsername = config.githubUsername || profile.username || ''
+  // Env-configured account only: the server token must never be steered by content. Empty →
+  // fetchContributions/fetchProjects both short-circuit and the CV renders without GitHub data.
+  const githubUsername = config.githubUsername || ''
   const contributions = await fetchContributions(githubUsername, octokit)
   const projectItems = await fetchProjects(githubUsername, projects?.repos || [], octokit)
 

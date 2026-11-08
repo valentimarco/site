@@ -21,8 +21,8 @@ const handler = defineEventHandler(async (event) => {
   // Resolve identity and project slugs from content, never from client query params. The endpoint
   // is a fixed proxy for a single account configured via `GITHUB_USERNAME`, so a bot cannot choose
   // an arbitrary username (token/rate-limit abuse) or amplify a request with arbitrary repo slugs.
+  // The username itself is env-only: content must never steer which account the server token queries.
   let profileFallback: Pick<ProfileData, 'name' | 'email' | 'location'> = {}
-  let profileUsername = ''
   let projectSlugs: string[] = []
   try {
     const [profileContent, projectsContent] = await Promise.all([
@@ -34,7 +34,6 @@ const handler = defineEventHandler(async (event) => {
       email: profileContent?.email,
       location: profileContent?.location,
     }
-    profileUsername = profileContent?.username || ''
     projectSlugs = projectsContent?.repos || []
   }
   catch (error) {
@@ -49,12 +48,11 @@ const handler = defineEventHandler(async (event) => {
     following: 0,
   }
 
-  // Prefer the server-configured account; fall back to the content profile so the endpoint keeps
-  // working when `GITHUB_USERNAME` is unset (e.g. a fresh local build). Either way the username is
-  // resolved server-side — never from client input.
-  const username = config.githubUsername || profileUsername
+  // The account is resolved from the environment only (server-side, never from client input and
+  // never from the content profile). Unset → no GitHub call at all.
+  const username = config.githubUsername
   if (!username) {
-    console.warn('[api/github] no GitHub username configured (GITHUB_USERNAME or profile.username); serving fallback')
+    console.warn('[api/github] GITHUB_USERNAME not configured; serving fallback')
     return emptyResponse(fallbackProfile)
   }
 
@@ -221,17 +219,44 @@ function isDegraded(payload: GitHubApiResponse) {
     || payload.contributions.list.length === 0
 }
 
+/** Cache envelope: the raw payload plus when a healthy GitHub response produced it. */
+interface CachedPayload {
+  fetchedAt: number
+  data: GitHubApiResponse
+}
+
+/** Serve the cached payload without contacting GitHub for up to one hour; refresh after. */
+const CACHE_MAX_AGE_MS = 60 * 60 * 1000
+
 export default defineEventHandler(async (event) => {
-  // No client input: there is exactly one cache entry per deployment.
-  const cacheKey = `github:${useRuntimeConfig(event).githubUsername || 'unset'}`
+  const config = useRuntimeConfig(event)
+  // Keyed on the env-configured account and the deployed version. Content can only ship with a
+  // deploy, so every deploy starts a new cache key and a stale snapshot can never outlive (or
+  // mask content changes of) a build — no re-run of the handler can resurrect the old entry.
+  const cacheKey = `github:${config.githubUsername || 'unset'}:${config.public.version}`
   const storage = useStorage('cache')
 
-  const cached = await storage.getItem<GitHubApiResponse>(cacheKey)
-  if (cached && !isDegraded(cached)) return cached
+  const cached = await storage.getItem<CachedPayload>(cacheKey)
+  // Only a healthy payload counts as last known good: a degraded entry is never written, but a
+  // shape that fails `isDegraded` on read (schema drift) must not be resurrected either.
+  const lastKnownGood = cached && !isDegraded(cached.data) ? cached : null
+  if (lastKnownGood && Date.now() - lastKnownGood.fetchedAt < CACHE_MAX_AGE_MS)
+    return lastKnownGood.data
 
+  // Stale entry or cache miss: try a live fetch. On success the entry is overwritten.
   const payload = await handler(event)
-  if (!isDegraded(payload)) await storage.setItem(cacheKey, payload)
-  else console.warn('[api/github] degraded response not cached, serving fallback')
+  if (!isDegraded(payload)) {
+    await storage.setItem(cacheKey, { fetchedAt: Date.now(), data: payload } satisfies CachedPayload)
+    return payload
+  }
 
+  // GitHub unreachable (expired token, rate limit, network): serve the last known good payload
+  // even if it is old. Content changes still get through — a deploy changed the key above.
+  if (lastKnownGood) {
+    console.warn(`[api/github] degraded response, serving last known good from ${new Date(lastKnownGood.fetchedAt).toISOString()}`)
+    return lastKnownGood.data
+  }
+
+  console.warn('[api/github] degraded response not cached, serving fallback')
   return payload
 })

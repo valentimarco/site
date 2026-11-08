@@ -102,12 +102,18 @@ Conventions:
   - `/api/cv-pdf` → 1 h (edge cache; protects the GitHub rate limit)
 - `/api/github` is **not** a routeRule: `server/api/github.ts` caches its payload in the Nitro `cache`
   storage, which is bound to Workers KV (`CACHE` in `wrangler.jsonc`) so it survives isolate cold
-  starts. Degraded (`source: 'fallback'`) payloads are never written; the key is constant per deploy.
+  starts. Entries are wrapped as `{ fetchedAt, data }`: a fresh (≤1 h) healthy entry is served as-is,
+  an older one triggers a live re-fetch. Degraded (`source: 'fallback'`) payloads are never written.
+  The cache key includes the deployed version (`github:<githubUsername || 'unset'>:<public.version>`,
+  from `package.json` via `runtimeConfig.public.version`) — content only ships with a deploy, so each
+  deploy starts a new key and a stale snapshot cannot survive one. When GitHub is unreachable, a
+  last-known-good entry (even older than 1 h) is served instead of the empty fallback.
 - **Route-rule HTML caches persist in KV across deploys** (the key is request-based, not build-based),
   so right after `wrangler deploy` a cached `/`, `/blog` or post can keep serving the previous build's
-  HTML — which references chunk hashes the new deploy removed — until `maxAge` elapses. If you need the
-  new build immediately, purge them:
-  `wrangler kv key list --namespace-id <CACHE id> --remote` then delete the `nitro:routes:*` keys.
+  HTML — which references chunk hashes the new deploy removed — until `maxAge` elapses. `bun run deploy`
+  purges them via `bun run cf-purge` (delete the `nitro:routes:*` keys from the `CACHE` namespace,
+  reads the namespace id from `wrangler.jsonc`); KV is eventually consistent, so a fresh edge may
+  still serve briefly.
 - Client-side: `useGitHub` resolves `/api/github` **after hydration** (`server: false`) so the homepage
   never blocks on GitHub; the sections and profile stats render once it resolves. There is no
   localStorage cache — a synchronous cached read during hydration desyncs the DOM from the SSR HTML.
@@ -115,7 +121,7 @@ Conventions:
 ### GitHub data flow
 
 1. `useGitHub` (client) → `GET /api/github` with **no query parameters**. The account is server-configured (`runtimeConfig.githubUsername` ← `GITHUB_USERNAME`) and the project slugs are read from the `projects` collection, so callers cannot point the endpoint (and the server token) at arbitrary accounts or amplify a request with arbitrary repo slugs. Identity/display fields (`name`, `email`, `location`) are passed to `useGitHub` only as offline fallbacks.
-2. `server/api/github.ts` resolves `githubUsername` and `projectSlugs` server-side, then calls Octokit for profile, project repos, and merged PRs (`author:<username> is:pr is:merged`), dedupes by repo, enriches top repos with stars and each project repo with `languages` (sorted by byte count). Profile data carries a `source: 'github' | 'fallback'` flag. All Octokit calls use `runtimeConfig.githubToken`; per-repo language failures degrade to `[]` rather than dropping the repo. If both `GITHUB_USERNAME` and the content profile's `username` are unset it logs a warning and returns the fallback payload without calling GitHub; otherwise it uses the content username. The cache key is constant (`github:<githubUsername || 'unset'>`).
+2. `server/api/github.ts` resolves `githubUsername` (from `GITHUB_USERNAME` only — the content profile's `username` is never read server-side, so content cannot steer which account the server token queries) and `projectSlugs` server-side, then calls Octokit for profile, project repos, and merged PRs (`author:<username> is:pr is:merged`), dedupes by repo, enriches top repos with stars and each project repo with `languages` (sorted by byte count). Profile data carries a `source: 'github' | 'fallback'` flag. All Octokit calls use `runtimeConfig.githubToken`; per-repo language failures degrade to `[]` rather than dropping the repo. If `GITHUB_USERNAME` is unset it logs a warning and returns the fallback payload without calling GitHub.
 3. Output validated against `gitHubApiResponseSchema` (shared/types/schemas.ts). On mismatch it logs a warning and returns raw data — the client is lenient.
 4. Endpoint degrades gracefully: any GitHub failure logs a warning and returns fallback data (empty lists / zeroed profile), so the site never breaks.
 
@@ -155,7 +161,7 @@ Conventions:
 - **`@nuxtjs/seo` module: `schemaOrg` and `sitemap` are enabled; `ogImage` generation is disabled** — the site ships a static og image from `profile.md` via `useSeoMeta` instead. Re-enable `ogImage` deliberately if needed.
 - **`@compodium/nuxt` is gated to development** (`process.env.NODE_ENV === 'development'`) — a beta module that should not run in production builds.
 - **`GITHUB_TOKEN` unset in prod** → GitHub API runs unauthenticated (60 req/h limit). Edge caching on `/api/github` and `/api/cv-pdf` + client caching mitigates this. Set it with `wrangler secret put GITHUB_TOKEN`.
-- **`GITHUB_USERNAME` unset** → `/api/github` falls back to the `profile` collection's `username` (still server-side, never client input), so it keeps working on a fresh build; it only serves the empty fallback if neither is set. The CV PDF likewise falls back to the content profile. Set it with `wrangler secret put GITHUB_USERNAME` to pin the account explicitly.
+- **`GITHUB_USERNAME` unset** → `/api/github` serves the empty fallback payload without contacting GitHub, and the CV PDF renders without GitHub sections (no Octokit calls). Set it with `wrangler secret put GITHUB_USERNAME` (or `.dev.vars` locally) to enable the GitHub-backed sections.
 - **Never let Vue be bundled twice in the server build.** `vue` is pinned in `package.json` (`^3.5.40`) so `nuxt` / `@nuxt/nitro-server` dedupe to the root copy. If the tree ends up with several Vue copies (e.g. a stale lockfile or a leftover pnpm `node_modules`), Cloudflare SSR throws `Cannot read properties of null (reading 'ce')` on every page: Vue runtime-core state is split across chunks, so Reka UI's `ConfigProvider` calls `renderSlot` with a null current instance. Keep `node_modules` a clean Bun install and `vue` aligned with Nuxt's requirement.
 - Local `.env` / `.dev.vars` hold `GITHUB_TOKEN` and `GITHUB_USERNAME` (gitignored). Never commit them.
 - Uncommitted at times: new blog posts land as untracked files until committed.
