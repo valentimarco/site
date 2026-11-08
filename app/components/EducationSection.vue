@@ -5,23 +5,6 @@ defineProps<{
   experience: EducationCollectionItem
 }>()
 
-function getTimeSpan(startDate: string, endDate?: string) {
-  const start = new Date(startDate)
-  const end = endDate ? new Date(endDate) : new Date()
-  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth())
-  if (months < 1) {
-    const diffTime = Math.abs(end.getTime() - start.getTime())
-    const days = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    return `${days} day${days !== 1 ? 's' : ''}`
-  }
-  if (months < 12) return `${months} month${months !== 1 ? 's' : ''}`
-  const years = Math.floor(months / 12)
-  const remMonths = months % 12
-  return remMonths === 0
-    ? `${years} year${years !== 1 ? 's' : ''}`
-    : `${years} year${years !== 1 ? 's' : ''} ${remMonths} month${remMonths !== 1 ? 's' : ''}`
-}
-
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })
 }
