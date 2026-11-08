@@ -87,9 +87,10 @@ useHead({
               </div>
             </div>
             <div class="shrink-0">
-              <ImageSpotlight baseImage="/me_jojo.webp" spotlightImage="/me.webp" :alt="name"
+              <ImageSpotlight baseImage="/wife.jpg" spotlightImage="/me.webp" :alt="name"
                               class="size-30 md:size-40 rounded-full object-cover" />
-              <p aria-hidden="true" class="text-sm text-center select-none print:hidden text-muted italic">
+              <p aria-hidden="true"
+                 class="block w-fit mx-auto min-w-40 text-center text-sm select-none print:hidden text-muted italic bg-elevated/50 ring-1 ring-default rounded-full px-3 py-0.5">
                 Hover me!
               </p>
             </div>
