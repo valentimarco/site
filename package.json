@@ -16,7 +16,8 @@
     "lighthouse": "unlighthouse",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache --fix .",
-    "deploy": "bun run build && wrangler deploy",
+    "deploy": "bun run build && wrangler deploy && bun run cf-purge",
+    "cf-purge": "bun run scripts/purge-route-cache.ts",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
