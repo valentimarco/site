@@ -17,6 +17,10 @@ categories:
   - name: Backend & Databases
     items:
       - Spring Boot
+      - FastAPI
+      - Elysia 2.0
+      - Express.js
+      - TypeORM
       - Axum
       - Echo
       - PostgreSQL
@@ -26,9 +30,13 @@ categories:
       - GraphQL
       - gRPC
       - REST
+      - RabbitMQ
   - name: AI & Machine Learning
     items:
       - Langchain
+      - LangGraph
+      - Llamaindex
+      - Pandas
       - scikit-learn
       - Qdrant
       - Llama.cpp
@@ -41,6 +49,7 @@ categories:
       - KeyCloak
       - Authelia
       - Cloudflare ZeroTrust
+      - Cloudflare Tunnel
       - Cloudflare DNS
   - name: Cloud
     items:
