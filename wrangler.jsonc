@@ -9,6 +9,13 @@
 		"enabled": true
 	},
 	"main": "./.output/server/index.mjs",
+	// Static assets for the Worker: Nitro bakes the same block into .output/server/wrangler.json.
+	// Without it `wrangler deploy` uploads no files at all and the Worker answers asset requests
+	// (_nuxt/*, _fonts/*, images) with empty 200 responses that the CDN then caches for 4h.
+	"assets": {
+		"binding": "ASSETS",
+		"directory": "./.output/public"
+	},
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
