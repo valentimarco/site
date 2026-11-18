@@ -153,6 +153,7 @@ Conventions:
 - Container env contract: `NUXT_GITHUB_TOKEN` (optional) and `NUXT_GITHUB_USERNAME` (required for GitHub sections), via `.env.docker` (copy from `.env.docker.example`).
 - `docker-compose.yml` defines service `site` on port 3000 with a Bun-fetch healthcheck; the user's reverse proxy fronts it. On the server: `docker compose pull && docker compose up -d`.
 - The image is published to the **public** GHCR repo `ghcr.io/valentimarco/site`, linux/amd64 only.
+- **Domain topology** (server-side config, not in this repo): `valentimarco.it` DNS is on Cloudflare (proxied) → Caddy on the server → the `site` container. Caddy must keep the **site as the catch-all `handle`** and scope only the co-hosted Matrix paths (`/.well-known/matrix/*`, `/_matrix/*`, `/_tuwunel/*`, `/_synapse/*`); enumerating site paths breaks on every new asset path — a request matching no Caddy handler returns an **empty 200 with no content-type** (footgun that once blanked `/blog`, `/_icons/*`, `/certifications/*`, favicon, robots, sitemap). Cloudflare's edge default-caches `.js` for 4 h, so a bad response can be pinned at the edge — after any proxy incident, purge the zone cache.
 
 ## Cloudflare / Deployment (fallback)
 
