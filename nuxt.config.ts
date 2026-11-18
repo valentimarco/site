@@ -1,5 +1,8 @@
 import { version } from './package.json'
 
+// Build target: node-server (default, for Docker/self-host) or cloudflare_module via NITRO_PRESET.
+const isCloudflare = process.env.NITRO_PRESET === 'cloudflare_module'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
@@ -45,7 +48,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     githubToken: process.env.GITHUB_TOKEN || '',
     // Server-only: /api/github takes no client input and always queries this account.
-    // Set via `wrangler secret put GITHUB_USERNAME` (or a Worker var) in production.
+    // Production (Docker): set at runtime via the `NUXT_GITHUB_USERNAME` env var (Nuxt's runtimeConfig
+    // override of `githubUsername`). Cloudflare keeps `wrangler secret put GITHUB_USERNAME`.
     githubUsername: process.env.GITHUB_USERNAME || '',
     public: {
       version,
@@ -128,22 +132,27 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    preset: 'cloudflare_module',
-    tracingChannel: true,
+    preset: isCloudflare ? 'cloudflare_module' : 'node-server',
 
-    // Persist the Nitro `cache` storage in Workers KV so values survive isolate cold starts. The
-    // default driver is in-memory (per isolate), so a fresh isolate re-ran the whole Octokit chain
-    // inline in SSR (~3.6s TTFB on `/`). `CACHE` is bound in wrangler.jsonc.
+    // Persist the Nitro `cache` storage so values survive cold starts / restarts. Cloudflare: Workers
+    // KV (`CACHE` bound in wrangler.jsonc), since the default in-memory driver is per isolate.
+    // Node/Docker: filesystem, same role as KV (survives process restarts); a new deploy = a new
+    // container = a fresh cache, so the KV-purge problem disappears by construction.
     storage: {
-      cache: {
-        driver: 'cloudflare-kv-binding',
-        binding: 'CACHE',
-      },
+      cache: isCloudflare
+        ? { driver: 'cloudflare-kv-binding', binding: 'CACHE' }
+        : { driver: 'fs', base: './.data/cache' },
     },
 
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat: true,
-    },
+    // Cloudflare-only settings: must not leak into the node-server build.
+    ...(isCloudflare
+      ? {
+          tracingChannel: true,
+          cloudflare: {
+            deployConfig: true,
+            nodeCompat: true,
+          },
+        }
+      : {}),
   },
 })

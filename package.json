@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
+    "build:cf": "NITRO_PRESET=cloudflare_module nuxt build",
+    "docker:build": "docker build -t ghcr.io/valentimarco/site:dev .",
     "dev": "nuxt dev",
     "typecheck": "nuxt typecheck",
     "generate": "nuxt generate",
-    "preview": "bun run build && wrangler dev",
+    "preview:cf": "bun run build:cf && wrangler dev",
     "publish": "bunx gh-pages --dotfiles -d .output/public",
     "postinstall": "nuxt prepare",
     "changelog": "changelogen --release",
@@ -16,7 +18,7 @@
     "lighthouse": "unlighthouse",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache --fix .",
-    "deploy": "bun run build && wrangler deploy && bun run cf-purge",
+    "deploy:cf": "bun run build:cf && wrangler deploy && bun run cf-purge",
     "cf-purge": "bun run scripts/purge-route-cache.ts",
     "cf-typegen": "wrangler types"
   },
