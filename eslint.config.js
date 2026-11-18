@@ -1,6 +1,12 @@
 import antfu from '@antfu/eslint-config'
 
 export default antfu({
+  ignores: [
+    // agent-session scratch: OpenCode plans and SDD workspaces are tool-generated
+    // markdown that must not gate the repo's lint
+    '.opencode',
+    '.superpowers',
+  ],
   stylistic: {
     indent: 2,
     quotes: 'single',
