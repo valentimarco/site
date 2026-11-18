@@ -8,7 +8,7 @@ Personal portfolio website built with Nuxt 4, Nuxt UI v4, Nuxt Content v3, and V
 bun run dev
 ```
 
-The dev server uses `nitro-cloudflare-dev`, which emulates Cloudflare bindings (KV, D1) locally.
+Local dev runs on the default node target: Nuxt Content uses local SQLite (better-sqlite3) and secrets load from `.env` via Nuxt's own dotenv support.
 
 ## Deployment
 

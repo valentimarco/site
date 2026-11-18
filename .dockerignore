@@ -11,6 +11,7 @@ node_modules
 .wrangler
 docs/
 .opencode/
+.superpowers/
 .unlighthouse
 .puppeteer_data
 logs

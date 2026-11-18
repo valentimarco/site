@@ -19,13 +19,13 @@ Renders a one-page portfolio (profile, experience, projects from GitHub, contrib
 
 - Default branch is `main` (production source). CI (`.github/workflows/docker.yml`) builds and pushes the public `ghcr.io/valentimarco/site` image (linux/amd64; tags `latest`, `main`, `sha-*`, and semver on `v*` tags) on push.
 - CI deliberately has **no lint/typecheck job** — quality gates are local discipline: run `bun run lint` and `bun run typecheck` before committing.
-- The legacy `pages` branch (old Cloudflare deploy source) still exists and is being retired; do not build on it. `master` and the GitHub Pages workflow are gone.
+- The old `pages` branch (legacy Cloudflare deploy source), `master`, and the GitHub Pages workflow are gone — `main` is the only branch.
 
 ## Commands
 
 | Command                     | What it does                                                                                                   |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `bun run dev`               | Start dev server (SSR). Runs `nuxt dev` with `nitro-cloudflare-dev` emulating Cloudflare bindings locally      |
+| `bun run dev`               | Start dev server (SSR). Local SQLite (better-sqlite3) via the default node target                              |
 | `bun run build`             | Production build via `nuxt build` (node-server preset, default); output in `.output/public` + `.output/server` |
 | `bun run build:cf`          | `NITRO_PRESET=cloudflare_module nuxt build` — Cloudflare Workers build (fallback target)                       |
 | `bun run preview:cf`        | `bun run build:cf && wrangler dev` — preview exactly as on Cloudflare                                          |

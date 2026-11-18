@@ -16,7 +16,7 @@ COPY --from=build --chown=bun:bun /app/.output ./.output
 # trace and resolve from the full install instead (walk-up lookup reaches /app/node_modules).
 COPY --from=build --chown=bun:bun /app/node_modules ./node_modules
 RUN rm -rf .output/server/node_modules
-# Content db restore + fs cache write into .data at runtime
+# fs cache (Nitro `cache` storage) writes into .data at runtime
 RUN install -d -o bun -g bun .data
 USER bun
 EXPOSE 3000
