@@ -8,27 +8,36 @@ Personal portfolio website built with:
 
 - **Nuxt 4** (`nuxt@^4.5.1`) — Vue 3 framework, SSR enabled
 - **Nuxt UI v4** (`@nuxt/ui`) — Tailwind CSS 4 component library
-- **Nuxt Content v3** (`@nuxt/content`) — file-based CMS backed by SQLite locally / **Cloudflare D1** in production
+- **Nuxt Content v3** (`@nuxt/content`) — file-based CMS backed by SQLite (a local file on the self-hosted target, **Cloudflare D1** on the Cloudflare fallback)
 - **Tailwind CSS 4**, **@nuxtjs/seo**, **@nuxt/image**, VueUse, motion-v
 - **Bun** — the package manager and runtime. **Do not use pnpm or npm.**
+- **Deployment** — production is **self-hosted Docker** (image `ghcr.io/valentimarco/site`, built by GitHub Actions); Cloudflare Workers is a **fallback** target.
 
 Renders a one-page portfolio (profile, experience, projects from GitHub, contributions, skills, education, certifications), a blog (`/blog`), and a server-generated PDF CV (`/api/cv-pdf`).
 
+## Branches & CI
+
+- Default branch is `main` (production source). CI (`.github/workflows/docker.yml`) builds and pushes the public `ghcr.io/valentimarco/site` image (linux/amd64; tags `latest`, `main`, `sha-*`, and semver on `v*` tags) on push.
+- CI deliberately has **no lint/typecheck job** — quality gates are local discipline: run `bun run lint` and `bun run typecheck` before committing.
+- The legacy `pages` branch (old Cloudflare deploy source) still exists and is being retired; do not build on it. `master` and the GitHub Pages workflow are gone.
+
 ## Commands
 
-| Command                     | What it does                                                                                              |
-| --------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `bun run dev`               | Start dev server (SSR). Runs `nuxt dev` with `nitro-cloudflare-dev` emulating Cloudflare bindings locally |
-| `bun run build`             | Production build via `nuxt build`; output in `.output/public` + `.output/server`                          |
-| `bun run preview`           | `bun run build && wrangler dev` — preview exactly as on Cloudflare                                        |
-| `bun run deploy`            | `bun run build && wrangler deploy` — deploy to Cloudflare Workers                                         |
-| `bun run typecheck`         | `nuxt typecheck` (vue-tsc + TS)                                                                           |
-| `bun run lint` / `lint:fix` | ESLint (flat config, `@antfu/eslint-config`)                                                              |
-| `bun run generate`          | Static generation via `nuxt generate` — **not used for production** (see Gotchas)                         |
-| `bun run clean`             | `nuxi cleanup && nuxt prepare`                                                                            |
-| `bun run lighthouse`        | Unlighthouse performance audit                                                                            |
-| `bun run cf-typegen`        | `wrangler types` — regenerates `worker-configuration.d.ts`                                                |
-| `bun run changelog`         | `changelogen --release`                                                                                   |
+| Command                     | What it does                                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `bun run dev`               | Start dev server (SSR). Runs `nuxt dev` with `nitro-cloudflare-dev` emulating Cloudflare bindings locally      |
+| `bun run build`             | Production build via `nuxt build` (node-server preset, default); output in `.output/public` + `.output/server` |
+| `bun run build:cf`          | `NITRO_PRESET=cloudflare_module nuxt build` — Cloudflare Workers build (fallback target)                       |
+| `bun run preview:cf`        | `bun run build:cf && wrangler dev` — preview exactly as on Cloudflare                                          |
+| `bun run deploy:cf`         | `bun run build:cf && wrangler deploy && bun run cf-purge` — deploy to Cloudflare Workers (fallback)            |
+| `bun run docker:build`      | `docker build -t ghcr.io/valentimarco/site:dev .` — build the self-hosted image locally                        |
+| `bun run typecheck`         | `nuxt typecheck` (vue-tsc + TS)                                                                                |
+| `bun run lint` / `lint:fix` | ESLint (flat config, `@antfu/eslint-config`)                                                                   |
+| `bun run generate`          | Static generation via `nuxt generate` — **not used for production** (see Gotchas)                              |
+| `bun run clean`             | `nuxi cleanup && nuxt prepare`                                                                                 |
+| `bun run lighthouse`        | Unlighthouse performance audit                                                                                 |
+| `bun run cf-typegen`        | `wrangler types` — regenerates `worker-configuration.d.ts`                                                     |
+| `bun run changelog`         | `changelogen --release`                                                                                        |
 
 Verification before completing any task: run `bun run lint` and `bun run typecheck`. There is **no test suite** — do not invent one unless asked.
 
@@ -96,22 +105,22 @@ Conventions:
 
 ### Rendering & caching
 
-- `ssr: true`. `hooks['prerender:routes']` **clears all routes** — `nuxt generate` produces nothing; the site is SSR-only on Cloudflare.
-- Edge caching via `routeRules` in `nuxt.config.ts`:
+- `ssr: true`. `hooks['prerender:routes']` **clears all routes** — `nuxt generate` produces nothing; the site is SSR-only on both targets.
+- Caching via `routeRules` in `nuxt.config.ts`:
   - `/blog` → 5 min, `/blog/**` → 1 h
-  - `/api/cv-pdf` → 1 h (edge cache; protects the GitHub rate limit)
+  - `/api/cv-pdf` → 1 h (Nitro cache layer; protects the GitHub rate limit)
 - `/api/github` is **not** a routeRule: `server/api/github.ts` caches its payload in the Nitro `cache`
-  storage, which is bound to Workers KV (`CACHE` in `wrangler.jsonc`) so it survives isolate cold
-  starts. Entries are wrapped as `{ fetchedAt, data }`: a fresh (≤1 h) healthy entry is served as-is,
+  storage, which persists across restarts: Workers KV (`CACHE` in `wrangler.jsonc`) on the Cloudflare
+  target, the filesystem (`.data/cache`) on the self-hosted target. Entries are wrapped as `{ fetchedAt, data }`: a fresh (≤1 h) healthy entry is served as-is,
   an older one triggers a live re-fetch. Degraded (`source: 'fallback'`) payloads are never written.
   The cache key is build-scoped (`github:<githubUsername || 'unset'>:<public.buildId>`; the build id
   is evaluated once per build in `nuxt.config.ts`) — content only ships with a deploy, so every
   deploy starts a new key and a stale snapshot cannot survive one. Old-scheme or orphaned entries
   are simply abandoned (no TTL is set; the purge script does not touch them). When GitHub is
   unreachable, a last-known-good entry (even older than 1 h) is served instead of the empty fallback.
-- **Route-rule HTML caches persist in KV across deploys** (the key is request-based, not build-based),
+- **Cloudflare only: route-rule HTML caches persist in KV across deploys** (the key is request-based, not build-based),
   so right after `wrangler deploy` a cached `/`, `/blog` or post can keep serving the previous build's
-  HTML — which references chunk hashes the new deploy removed — until `maxAge` elapses. `bun run deploy`
+  HTML — which references chunk hashes the new deploy removed — until `maxAge` elapses. `bun run deploy:cf`
   purges them via `bun run cf-purge` (delete the `nitro:routes:*` keys from the `CACHE` namespace,
   reads the namespace id from `wrangler.jsonc`); KV is eventually consistent, so a fresh edge may
   still serve briefly.
@@ -132,18 +141,29 @@ Conventions:
 
 ### Runtime config
 
-- `runtimeConfig.githubToken` ← `process.env.GITHUB_TOKEN` (server-only). Local: `.env` (see `.env.example`). Cloudflare: `wrangler secret put GITHUB_TOKEN` (or `.dev.vars` locally, see `.dev.vars.example`).
-- `runtimeConfig.githubUsername` ← `process.env.GITHUB_USERNAME` (server-only). The single account `/api/github` and the CV PDF query; there is no client input. Local: `.env` (see `.env.example`). Cloudflare: `wrangler secret put GITHUB_USERNAME` (or `.dev.vars` locally, see `.dev.vars.example`).
+- `runtimeConfig.githubToken` ← `process.env.GITHUB_TOKEN` at build (server-only). Local: `.env` (see `.env.example`). **Docker (production):** `NUXT_GITHUB_TOKEN` at runtime (Nuxt's `NUXT_` runtimeConfig override; `.env.docker`, see `.env.docker.example`). Cloudflare: `wrangler secret put GITHUB_TOKEN` (or `.dev.vars` locally, see `.dev.vars.example`).
+- `runtimeConfig.githubUsername` ← `process.env.GITHUB_USERNAME` at build (server-only). The single account `/api/github` and the CV PDF query; there is no client input. Local: `.env` (see `.env.example`). **Docker (production):** `NUXT_GITHUB_USERNAME` at runtime (`.env.docker`). Cloudflare: `wrangler secret put GITHUB_USERNAME` (or `.dev.vars` locally, see `.dev.vars.example`).
 - `runtimeConfig.public.version` ← `package.json` version (shown in footer).
 
-## Cloudflare / Deployment
+## Self-hosted Docker (production)
+
+- Default build is the Nitro `node-server` preset (`NITRO_PRESET` is read at build time in `nuxt.config.ts`, not at runtime). The `Dockerfile` is multi-stage and uses **Bun in both stages** (`oven/bun:1`, Debian-based) and runs as the non-root `bun` user.
+- **glibc-only images**: better-sqlite3 needs glibc ≥ 2.29 — never switch the base to Alpine.
+- Nuxt Content db is `.output/server/contents.sqlite`, created at server boot from the bundled dump. The Nitro `cache` storage is the filesystem at `.data/cache`; a new deploy is a new container with a fresh cache, so no KV purge is needed.
+- Container env contract: `NUXT_GITHUB_TOKEN` (optional) and `NUXT_GITHUB_USERNAME` (required for GitHub sections), via `.env.docker` (copy from `.env.docker.example`).
+- `docker-compose.yml` defines service `site` on port 3000 with a Bun-fetch healthcheck; the user's reverse proxy fronts it. On the server: `docker compose pull && docker compose up -d`.
+- The image is published to the **public** GHCR repo `ghcr.io/valentimarco/site`, linux/amd64 only.
+
+## Cloudflare / Deployment (fallback)
+
+Not production; kept working via `bun run build:cf` / `bun run deploy:cf`.
 
 - Deploys as a **Cloudflare Worker with Assets** via `wrangler.jsonc`: `main` = `.output/server/index.mjs`, `assets.directory` = `./.output/public` (binding `ASSETS`, mirroring what Nitro bakes into `.output/server/wrangler.json` — without it `wrangler deploy` uploads no static files and the Worker serves empty 200s for `/_nuxt/*`, `/_fonts/*` and images, which the CDN then caches for 4 h), `compatibility_date` `2026-07-10`, flags `nodejs_compat`, `observability` (traces) enabled.
 - **Routing to `valentimarco.it` is currently detached** (`wrangler.jsonc` has no `routes`) while the final content is added. When re-attaching, use the scoped list only — `valentimarco.it/`, `/blog*`, `/api/*`, `/_*`, and the static files (`favicon.*`, `me*.webp`, `og-image.png`, `robots.txt`, `sitemap.xml`), mirrored on `www`. **Never add a catch-all `valentimarco.it/*`**: other apps live under the same domain and unmatched paths must fall through. Routes are read from `wrangler.jsonc` at build time (Nitro bakes them into `.output/server/wrangler.json`), so **rebuild before deploying route changes**. Note: removing `routes` from the config and deploying does **not** delete existing zone routes — `wrangler deploy` only adds them; delete stale ones via the API/dashboard.
 - **D1 binding `DB`** is required — Nuxt Content v3 stores content in D1 in production (`portfolio-db`). Dev emulates it via `nitro-cloudflare-dev`.
 - **KV binding `CACHE`** is required — the Nitro `cache` storage (used by `/api/github`, blog route rules, and the icon cache) is bound to Workers KV so values survive isolate cold starts. Create it with `wrangler kv namespace create CACHE` and keep the id in `wrangler.jsonc` in sync.
-- `bun run deploy` builds and deploys. **Do not edit `worker-configuration.d.ts`** — it is generated by `bun run cf-typegen`.
-- The repo also carries a GitHub Pages workflow (`.github/workflows/build.yml`, branch `master`). The Cloudflare deploy happens from branch `pages`. Keep this in mind when switching branches; production is Cloudflare.
+- `bun run deploy:cf` builds (Cloudflare preset), deploys and purges the route-cache KV keys. **Do not edit `worker-configuration.d.ts`** — it is generated by `bun run cf-typegen`.
+- Branch state for this target: see "Branches & CI" above. Production is self-hosted Docker, not Cloudflare.
 
 ## Conventions & Quality
 
@@ -161,8 +181,9 @@ Conventions:
 - **`certifications` content is placeholder** — `content/certifications/*.md` ships two `Example» placeholder certs (pointing at `/og-image.png`) so the section and the CV PDF render; replace them with real certs and logos under `public/certifications/`.
 - **`@nuxtjs/seo` module: `schemaOrg` and `sitemap` are enabled; `ogImage` generation is disabled** — the site ships a static og image from `profile.md` via `useSeoMeta` instead. Re-enable `ogImage` deliberately if needed.
 - **`@compodium/nuxt` is gated to development** (`process.env.NODE_ENV === 'development'`) — a beta module that should not run in production builds.
-- **`GITHUB_TOKEN` unset in prod** → GitHub API runs unauthenticated (60 req/h limit). Edge caching on `/api/github` and `/api/cv-pdf` + client caching mitigates this. Set it with `wrangler secret put GITHUB_TOKEN`.
-- **`GITHUB_USERNAME` unset** → `/api/github` serves the empty fallback payload without contacting GitHub, and the CV PDF renders without GitHub sections (no Octokit calls). Set it with `wrangler secret put GITHUB_USERNAME` (or `.dev.vars` locally) to enable the GitHub-backed sections.
-- **Never let Vue be bundled twice in the server build.** `vue` is pinned in `package.json` (`^3.5.40`) so `nuxt` / `@nuxt/nitro-server` dedupe to the root copy. If the tree ends up with several Vue copies (e.g. a stale lockfile or a leftover pnpm `node_modules`), Cloudflare SSR throws `Cannot read properties of null (reading 'ce')` on every page: Vue runtime-core state is split across chunks, so Reka UI's `ConfigProvider` calls `renderSlot` with a null current instance. Keep `node_modules` a clean Bun install and `vue` aligned with Nuxt's requirement.
+- **`GITHUB_TOKEN` unset in prod** → GitHub API runs unauthenticated (60 req/h limit). Server-side caching of `/api/github` and `/api/cv-pdf` mitigates this. Set `NUXT_GITHUB_TOKEN` (Docker) or `wrangler secret put GITHUB_TOKEN` (Cloudflare).
+- **`GITHUB_USERNAME` unset** → `/api/github` serves the empty fallback payload without contacting GitHub, and the CV PDF renders without GitHub sections (no Octokit calls). Set `NUXT_GITHUB_USERNAME` (Docker), or `wrangler secret put GITHUB_USERNAME` (or `.dev.vars` locally) on Cloudflare, to enable the GitHub-backed sections.
+- **Never let Vue be bundled twice in the server build.** `vue` is pinned in `package.json` (`^3.5.40`) so `nuxt` / `@nuxt/nitro-server` dedupe to the root copy. If the tree ends up with several Vue copies (e.g. a stale lockfile or a leftover pnpm `node_modules`), SSR throws `Cannot read properties of null (reading 'ce')` on every page: Vue runtime-core state is split across chunks, so Reka UI's `ConfigProvider` calls `renderSlot` with a null current instance. Keep `node_modules` a clean Bun install and `vue` aligned with Nuxt's requirement.
+- **The runtime image copies the FULL `node_modules`, not Nitro's traced `.output/server/node_modules`.** Nitro's trace resolves `ofetch` via the `node` export condition, but Bun resolves the `bun` condition to a different file, so the partial traced copy crashes at boot (`Cannot find package 'ofetch'`). The Dockerfile copies the complete install and removes the traced copy (see `Dockerfile:16-18`).
 - Local `.env` / `.dev.vars` hold `GITHUB_TOKEN` and `GITHUB_USERNAME` (gitignored). Never commit them.
 - Uncommitted at times: new blog posts land as untracked files until committed.

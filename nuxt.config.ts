@@ -1,6 +1,7 @@
 import { version } from './package.json'
 
 // Build target: node-server (default, for Docker/self-host) or cloudflare_module via NITRO_PRESET.
+// NITRO_PRESET is read at build time (config load), not at runtime.
 const isCloudflare = process.env.NITRO_PRESET === 'cloudflare_module'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
@@ -53,8 +54,8 @@ export default defineNuxtConfig({
     githubUsername: process.env.GITHUB_USERNAME || '',
     public: {
       version,
-      // Evaluated once per build process: a build-scoped id used by /api/github to key its KV
-      // cache, so every deploy starts a fresh entry even without a version bump.
+      // Evaluated once per build process: a build-scoped id used by /api/github to key its
+      // Nitro `cache` entry, so every deploy starts a fresh entry even without a version bump.
       buildId: Date.now().toString(36),
     },
   },
@@ -99,8 +100,9 @@ export default defineNuxtConfig({
 
   routeRules: {
     // The homepage is the only page with a live SSR pass and no isolate-cached render, so a cold
-    // isolate re-rendered it (~1.2 s TTFB) on every fresh isolate. Cache it like the blog routes:
-    // the GitHub-backed API payload refreshes at most hourly (`/api/github` KV cache) and is
+    // isolate re-rendered it (~1.2 s TTFB) on every fresh isolate. Cache it like the blog routes
+    // (Nitro cache layer, whichever driver the target uses): the GitHub-backed API payload
+    // refreshes at most hourly (`/api/github` Nitro `cache` storage) and is
     // invalidated on every deploy by the build-scoped cache key, so 5 min of HTML is fine. `swr`
     // serves the stale copy instantly while revalidating.
     '/': {
@@ -111,7 +113,7 @@ export default defineNuxtConfig({
     },
     '/blog': {
       cache: {
-        maxAge: 300, // 5 min at edge
+        maxAge: 300, // 5 min in the Nitro cache layer
       },
     },
     '/blog/**': {
@@ -121,13 +123,14 @@ export default defineNuxtConfig({
     },
     // /api/github is intentionally NOT cached here: a plain routeRule cache cannot tell a healthy
     // response from a degraded one, so a single GitHub failure (bad token, rate limit, network blip)
-    // would pin an empty `source: 'fallback'` payload at the edge. server/api/github.ts instead
-    // caches healthy payloads in the KV-backed Nitro `cache` storage (see `nitro.storage` below).
+    // would pin an empty `source: 'fallback'` payload in the cache. server/api/github.ts instead
+    // caches healthy payloads in the Nitro `cache` storage — KV on the Cloudflare target, fs on the
+    // self-hosted target (see `nitro.storage` below).
     '/api/cv-pdf': {
-      // Set NUXT_CV_PDF_DISABLE_CACHE=1 (e.g. in local .env) to bypass the edge cache while iterating on the PDF
+      // Set NUXT_CV_PDF_DISABLE_CACHE=1 (e.g. in local .env) to bypass the cache while iterating on the PDF
       cache: ['1', 'true', 'yes', 'on'].includes((process.env.NUXT_CV_PDF_DISABLE_CACHE || '').toLowerCase())
         ? false
-        : { maxAge: 3600 }, // Cache at edge for 1 hour (PDF is static personal data; protects GitHub rate limit)
+        : { maxAge: 3600 }, // Cache for 1 hour in the Nitro cache layer (PDF is static personal data; protects GitHub rate limit)
     },
   },
 

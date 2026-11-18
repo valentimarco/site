@@ -2,57 +2,55 @@
 
 Personal portfolio website built with Nuxt 4, Nuxt UI v4, Nuxt Content v3, and Vite.
 
-## Cloudflare Deployment
-
-This project is configured to run on the **Cloudflare Developer Platform** (using Cloudflare Workers with Assets, the unified successor to Cloudflare Pages).
-
-### Local Development & Emulation
-
-You can run the Nuxt development server with Cloudflare's local resources (KV, D1, etc.) emulated locally:
+## Local Development
 
 ```bash
 bun run dev
 ```
 
-This runs the dev server using `nitro-cloudflare-dev` which automatically binds Wrangler's local emulator.
+The dev server uses `nitro-cloudflare-dev`, which emulates Cloudflare bindings (KV, D1) locally.
 
-### Local Preview
+## Deployment
 
-To build and preview your application locally exactly as it will run on Cloudflare:
+### Self-hosted (Docker) — primary
+
+CI (GitHub Actions) builds and publishes the public image `ghcr.io/valentimarco/site` (linux/amd64) on every push to `main`. The image runs on Bun (`oven/bun:1`, Debian-based) as a non-root user and listens on port 3000.
+
+On the server:
+
+1. Copy `.env.docker.example` to `.env.docker` and fill in `NUXT_GITHUB_USERNAME` (and optionally `NUXT_GITHUB_TOKEN`).
+2. Pull and start:
+
+   ```bash
+   docker compose pull && docker compose up -d
+   ```
+
+3. Point your reverse proxy at port 3000. The compose service `site` ships a healthcheck.
+
+To build the image locally instead: `bun run docker:build`.
+
+CI intentionally has no lint/typecheck job; run `bun run lint` and `bun run typecheck` locally before pushing.
+
+### Cloudflare — fallback
+
+The project can still be built and deployed to Cloudflare Workers with Assets (`wrangler.jsonc` is kept):
 
 ```bash
-bun run preview
+bun run build:cf     # Cloudflare build
+bun run preview:cf   # build + local `wrangler dev`
+bun run deploy:cf    # build + wrangler deploy + route-cache purge
 ```
 
-### Production Build
+On Cloudflare, Nuxt Content v3 uses **Cloudflare D1** and the Nitro cache uses **Workers KV**:
 
-To build your application for Cloudflare manually:
+1. Create the D1 database:
 
-```bash
-bun run build
-```
-
-The output will be generated inside `.output/public` (static assets) and `.output/server` (server-side rendering entry point).
-
-### Deployment
-
-To deploy your application to Cloudflare from your local machine:
-
-```bash
-bun run deploy
-```
-
-This will run the build script and use Wrangler to deploy your assets and server to Cloudflare under a `*.workers.dev` subdomain or custom domain.
-
-#### Setting up the D1 Database (for Nuxt Content v3)
-
-Nuxt Content v3 uses an SQLite-compatible storage layer. On Cloudflare, this is powered by **Cloudflare D1**.
-
-1. Create a D1 Database in your Cloudflare Dashboard, or run via Wrangler:
    ```bash
    bunx wrangler d1 create portfolio-db
    ```
-2. Note the generated `database_id` and update it in your `wrangler.jsonc` file:
+
+2. Put the generated `database_id` in `wrangler.jsonc`:
+
    ```json
    "d1_databases": [
      {
@@ -62,7 +60,8 @@ Nuxt Content v3 uses an SQLite-compatible storage layer. On Cloudflare, this is 
      }
    ]
    ```
-3. When deploying to the Cloudflare dashboard, make sure the `DB` binding is connected to your D1 database.
+
+3. Make sure the `DB` binding (and the `CACHE` KV namespace) are connected when deploying.
 
 ## Built With
 
